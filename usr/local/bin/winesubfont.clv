@@ -1,0 +1,107 @@
+#!/bin/bash
+# I wrote this script because several people need greek fonts in Wine
+# Maybe the script is suitable for other languages. Please inform me.
+#
+# Copyright 2009 Michales Michaloudes <korgie@gmail.com>
+# Edited in Jun 2018 for 64bit only wine
+# All rights reserved.
+#
+# Redistribution and use of this script, with or without modification, is
+# permitted provided that the following conditions are met:
+#
+# 1. Redistributions of this script must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ''AS IS'' AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+# EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+clear
+
+WINEBIN=wine
+
+which $WINEBIN 2>/dev/null
+if [ $? == 1 ]; then
+	echo "wine (32-bit) is missing, will check for 64bit".
+	WINEBIN=wine64
+fi
+
+which $WINEBIN 2>/dev/null
+if [ $? == 1 ]; then
+	echo "I can't find wine or wine64 installed!"
+	exit 1
+fi
+
+echo "Wine 64-bit found!"
+
+echo "This script will change the default winefont with yours."
+echo "Execute like this: winesubfont YOURFONTNAME"
+echo "(example: winesubfont \"Liberation Serif\")"
+echo
+echo "ATTENTION, if the fontname contains spaces don't forget the quotes:\""
+echo
+echo "If you don't know what to do, just press enter twice."
+echo "if you know some stuff about fonts, make your choice after I diplay you"
+echo "the available wine fonts on your computer."
+echo
+echo "This scripts needs: awk, sed and tee"
+echo
+echo "Press ctrl+c if you scared to death and you want to cancel this."
+
+fontwine=$1
+
+if [ "$fontwine" = "" ]; then
+	echo
+	echo "No font specified, let's see what fonts you have."
+	echo "Press a key"
+	read wait
+	# presentation of wine fonts
+	$WINEBIN regedit /E fonts_available.reg "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
+	awk -F"\"" '{ print $2 }' fonts_available.reg | sed -e '/Italic/d' -e '/Bold/d' -e 's/ (TrueType)//' | tee fonts_available.sed
+	echo
+	echo "Write the font you like to use. Don't forget the quotes (\")"
+	echo "example: \"DejaVu Sans\""
+	echo "Press enter if you don't know what to select. I try to select appropriate"
+	echo "font."
+	echo
+	echo "Press ctrl+c if you scared to death and you want to cancel this."
+	read fontwine
+fi
+
+if [ "$fontwine" = "" ]; then
+	for defaultfont in "Liberation Serif" "DejaVu Sans" "Georgia"; do
+	echo "testing: ${defaultfont}"
+	grep -q -x "${defaultfont}" fonts_available.sed
+		if [ $? -eq 0 ]; then		# font exists in wine
+			fontwine=${defaultfont}
+			echo
+			echo "Wine font: ${fontwine} exists, I am happy..."
+			break
+		elif [ "$defaultfont" = "Georgia" ]; then
+			echo
+			echo "Sorry, no appropriate font, known to me is found."
+			echo "Nothing to do."
+			exit
+		fi
+	done
+fi
+
+# extract the key we want and backup
+$WINEBIN regedit /E wine_fonts_subs_old.reg "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes"
+cp wine_fonts_subs_old.reg wine_fonts_subs_backup_`date +%s`.reg
+
+# change the default font
+sed -e "s/=.*/=\"${fontwine}\"/" wine_fonts_subs_old.reg > "wine_fonts_subs_${fontwine}.reg"
+
+# import the substitude to wine
+$WINEBIN regedit "wine_fonts_subs_${fontwine}.reg"
+
+echo "I used the ${fontwine} font."
+echo "Run winecfg and see if you like the result."

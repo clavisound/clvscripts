@@ -1,0 +1,11 @@
+#!/bin/bash
+# Requires: gpsbabel
+FILE="$1"
+
+if [ ! -e /usr/bin/gpsbabel ]; then
+	echo "gpsbabel is missing from /usr/bin/"
+        echo "Exiting."
+	exit 1
+fi
+
+gpsbabel -i nmea -f "$FILE" -o gpx -F "$FILE".gpx

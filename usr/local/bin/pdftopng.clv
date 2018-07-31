@@ -1,0 +1,50 @@
+#!/bin/bash
+# Requires ImageMagick, poppler
+DPI=${DPI:-150}
+PPMOPTIONS=${PPMOPTIONS:-}
+CONVERTOPTIONS=${CONVERTOPTIONS:--colors 256}
+
+TEMP=${TEMP:-/mnt/tempfs}
+# if TEMP folder is not exists, default to system wide /tmp
+if [ ! -e $TEMP ]; then
+	TEMP=/tmp
+fi
+FILE=$1
+COUNTER=1
+
+if [ "$FILE" == '' ]; then
+	echo "Gime a pdf file to work! ex. $0 file.pdf"
+	echo "Extra options: DPI=85 (A4 for 1024x768) PPMOPTIONS=-png (for temp png)"
+	echo "Extra options: CONVERTOPTIONS=-colorspace gray"
+	exit
+fi
+
+if [ "$FILE" == './' ]; then
+	echo "Gime a pdf file to work! ex. $0 file.pdf"
+	exit
+fi
+
+# grab only the filename, ignore the folder
+FILE=`basename $1`
+
+# do this only if the path is relative
+# convert the relative path to absolute
+FIRSTCHAR=`echo $1 | cut -b 1`
+if [ $FIRSTCHAR != "/" ]; then
+       FOLDER=$PWD/`dirname $1`
+fi
+
+# krg was without -png
+#pdftoppm -png -r $DPI $FOLDER/$FILE $TEMP/$FILE
+pdftoppm $PPMOPTIONS -r $DPI $FOLDER/$FILE $TEMP/$FILE
+
+# select png or ppm to work?
+EXT=$(ls $TEMP/$FILE-* | head -1 | sed 's+/.*\.++')
+
+for i in $TEMP/$FILE-*.$EXT
+do
+	convert $CONVERTOPTIONS $i $i.png
+	rm -v $i
+	mv -v $i.png $FOLDER/
+	echo "$i.png should be moved to $FOLDER/`basename $i.png`"
+done

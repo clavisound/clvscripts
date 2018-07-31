@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Written by clavisound. May-2012
+
+set -e
+
+USERTXPOWER=$1
+
+if [ "$USERTXPOWER" = '' ]; then
+	USERTXPOWER=0
+fi
+# If wlan0: is here, then we have interface, or abort.
+interface(){
+INTERFACE=$(iwconfig 2>/dev/null | grep ESSID | gawk -F' ' ' { print $1 } ')
+if [ "$INTERFACE" = '' ]; then
+	xmessage "No wifi interface found. Maybe your hardware is unsupported."
+	exit 1
+fi
+}
+
+interface
+
+# get the current wifi power.
+txpower(){
+TXPOWER=$(iwconfig 2>/dev/null | grep Tx-Power= | gawk -F'=' ' { print $2 } ' | tr -d ' ')
+}
+
+txpower
+
+if [ "$TXPOWER" = 'off' ]; then
+	ifconfig $INTERFACE up
+	iwconfig $INTERFACE txpower $USERTXPOWER
+	txpower
+	xmessage -timeout 3 "$INTERFACE wifi power is $TXPOWER."
+else
+	iwconfig $INTERFACE txpower off
+	txpower
+	xmessage -timeout 3 "$INTERFACE wifi power is $TXPOWER."
+fi

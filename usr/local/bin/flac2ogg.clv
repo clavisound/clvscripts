@@ -1,0 +1,54 @@
+#!/bin/bash
+FILENAME=$1
+QUALITY=$2
+
+if [ "$1" == '' ]; then
+	echo "Usage $0 name.flac QualityNumber -> 6 is normal 1 <- we have artifacts) 4 is ok for web"
+	exit
+fi
+
+if [ "$QUALITY" == '' ]; then
+	QUALITY="6 -m 64 -M 192"
+elif [ "$QUALITY" == '' ]; then
+	echo "You ordered low quality"
+	QUALITY="1 -m 32 -M 96"
+fi
+
+function oggwithtag (){
+FILENAMEONLY=$(echo $FILENAME | sed 's/.flac$//')
+	TITLE=`grep TITLE "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+	ALBUM=`grep ALBUM "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+	NUMBER=`grep NUMBER "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+	DATE=`grep DATE "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+	ARTIST=`grep ARTIST "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+	COMMENTS=`grep COMMENTS "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+	nice flac -dc "$FILENAME" | nice oggenc - -q $QUALITY \
+			-t "$TITLE" \
+		       	-n "$NUMBER" \
+		       	-a "$ARTIST" \
+		       	-d "$DATE" \
+		       	-l "$ALBUM" \
+		       	-c "$COMMENTS" \
+			-o "$FILENAMEONLY".ogg 
+}
+
+function exporttags (){
+# export tags if absent
+if [ ! -e "$FILENAME".tags ]; then
+	metaflac "$FILENAME" --export-tags-to="$FILENAME".tags
+else
+	echo "Tags are already here, erase "$FILENAME".tags to recreate them."
+fi
+}
+
+# if user does not specify a file, convert all the flacs in the current folder.
+if [ "$FILENAME" == "" ]; then
+	for FILENAME in ./*.flac
+	do
+		exporttags "$FILENAME"
+		oggwithtag "$FILENAME"
+	done
+else
+	exporttags
+	oggwithtag
+fi

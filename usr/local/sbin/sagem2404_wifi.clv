@@ -1,0 +1,51 @@
+#!/bin/bash
+source /etc/clvscripts/sagem2404.conf
+
+SBIN=/usr/sbin/
+
+# see /etc/krgscripts/sagem2404.conf (>start)
+IP=${IP:-}
+SSID=${SSID:-}
+USER=${USER:-}
+PASS=${PASS:-}
+# see /etc/krgscripts/sagem2404.conf (>end)
+
+WIFI=1
+HIDE=1
+COUNTRY=GR
+WAITSAGEM=9
+
+function sagemWiFIswitch(){
+curl -u $USER:$PASS "http://$IP/wlcfg.wl?wlEnbl=$WIFI&wlHide=$HIDE&wlSsid=$SSID&wlCountry=$COUNTRY&wlAdvancedMode=1&wlAdvancedMode=1" &>/dev/null
+}
+
+function sagemWiFIpower(){
+# TODO
+# echo "Power set to $1"
+curl -u $USER:$PASS "http://$IP/wlcfgadv.wl?wlTxPower=$1" # &>/dev/null
+}
+
+if [ "$1" == "" ]; then
+	echo "Usage: give ON for Wifi ON".
+	exit
+fi
+
+if [ $1 = 20 ] || [ $1 == 40 ] || [ $1 == 60 ] || [ $1 == 80 ] || [ $1 == 100 ]; then
+	sagemWiFIpower $1
+	WIFI=1
+fi
+
+if [ "$1" == "ON" ] || [ $1 -gt 0 ]; then
+	#open wifi in router
+	WIFI=1
+	echo "Enabling Wifi"
+	sagemWiFIswitch
+	#enable wireless in computer
+	echo "(You have connected via ethernet. Right?)"
+	echo "Pause for $WAITSAGEM seconds, waiting for sagem wifi to wake up..."
+else
+	WIFI=0
+	sagemWiFIswitch
+	echo "Wifi should be closed. Check your led in Sagem."
+fi
+

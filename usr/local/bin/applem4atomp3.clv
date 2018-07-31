@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# Requires: lame, ffmpeg, gawk, eyed3, faad
+
+# TODO: GPL license here
+# TODO: album-art
+# TODO: rename
+
+# Copyright 2011-2012, Michales Michaloudes (aka. clavisound)
+EYED3=$(which eyeD3)
+APPLEFILE=$1
+if [ "$APPLEFILE" = "" ]; then
+	echo "Trying to autoguess audio file"
+	APPLEFILE=$(ls -t ./*.m4a | head -1)
+fi
+
+# Some files start with '-'. That confuses many programs. Get rid of it.
+grep -q '-' $APPLEFILE
+if [ $? = 0 ]; then
+	echo "File contains '-', linking"
+	ln -s ./"$APPLEFILE" $(echo $APPLEFILE | sed 's/-/_/')
+fi
+FILENAMEONLY=$(echo $APPLEFILE | sed -e 's/.m4a$//' -e 's/-/_/')
+PLISTFILE=$2
+IMAGEFILE=$3
+BITRATE=${BITRATE:-256}
+
+if [ "$IMAGEFILE" == "" ]; then
+	echo "Trying to autodetect imagefile."
+	IMAGEFILE=$(ls -t ./*.jpg | head -1)
+fi
+
+if [ "$PLISTFILE" = "" ]; then
+	echo "Trying to autodetect plistfile."
+	PLISTFILE=$(ls -t ./*.plist | head -1)
+fi
+
+if [ ! -e "$PLISTFILE" ]; then
+	echo "$PLISTFILE is absent!"
+	echo "If you have iOS-5.0.1 gime the .plist file"
+	echo "exaple: $0 file.m4a file.plist"
+	exit
+fi
+
+echo "creating text plistfile from binary plist file."
+plutil -i "$PLISTFILE" > "$FILENAMEONLY".plist || exit 1
+
+function exporttags (){
+if [ ! -e "$FILENAMEONLY".tags ]; then
+	for TAGS in artistName discNumber genre itemName playlistName trackNumber trackCount year copyright
+	do
+		# with </key> for safety (genre vs genreID)
+		TAG=$(grep "$TAGS</key>" -A 1 "$FILENAMEONLY".plist | tail -1 | sed -e 's/<string>//g' -e 's+</string>++g' -e 's/<integer>//g' -e 's/..integer.//g')
+		echo -n "$TAGS"= >> "$FILENAMEONLY".tags
+		echo $TAG >> "$FILENAMEONLY".tags
+	done
+	sed -i -e 's/artistName/ARTIST/' -e 's/playlistName/ALBUM/' -e 's/trackCount/TOTALTRACK/' -e 's/itemName/TITLE/' -e 's/year/DATE/' -e 's/trackNumber/NUMBER/' "$FILENAMEONLY".tags
+else
+		echo "Tags are already here, erase "$FILENAME".tags to recreate them."
+	fi
+}
+
+function lameit (){
+	#flvtomp3.clv "$FILENAMEONLY".m4a 256
+	echo "converting..."
+	ffmpeg -i "$FILENAMEONLY".m4a -vn -acodec libmp3lame -ab ${2}k \
+	       	-y "$FILENAMEONLY"_${2}.mp3 1>/dev/null
+}
+
+function lameitq (){
+	echo "converting..."
+	ffmpeg -i "$FILENAMEONLY".m4a -aq 7 -vn -acodec libmp3lame \
+	       	-y "$FILENAMEONLY"_${2}.mp3 1>/dev/null
+}
+
+function renameit (){
+mv -v ${FILENAMEONLY}_${1}.mp3 "${TITLE}__${ARTIST}"__${1}.mp3
+}
+
+function tagit (){
+TITLE=`grep TITLE "$FILENAMEONLY".tags | gawk -F "=" ' { print $2 } '` 
+ALBUM=`grep ALBUM "$FILENAMEONLY".tags | gawk -F "=" ' { print $2 } '` 
+NUMBER=`grep NUMBER "$FILENAMEONLY".tags | gawk -F "=" ' { print $2 } '` 
+DATE=`grep DATE "$FILENAMEONLY".tags | gawk -F "=" ' { print $2 } '` 
+ARTIST=`grep ARTIST "$FILENAMEONLY".tags | gawk -F "=" ' { print $2 } '` 
+COMMENTS=`grep COMMENTS "$FILENAMEONLY".tags | gawk -F "=" ' { print $2 } '` 
+id3tag --song "$TITLE" \
+       	--track "$NUMBER" \
+       	--artist "$ARTIST" \
+       	--year "$DATE" \
+       	--album "$ALBUM" \
+       	--comment "$COMMENTS" \
+	"$FILENAMEONLY"_${2}.mp3
+if [ -x "$EYED3" ]; then
+	$EYED3 -v --add-image="$IMAGEFILE":FRONT_COVER "$FILENAMEONLY"_${2}.mp3
+fi
+renameit $2 "$TITLE" "$ARTIST"
+}
+
+exporttags "$FILENAMEONLY"
+
+if [ $BITRATE -gt 192 ]; then
+	lameit "$FILENAMEONLY" 160
+	tagit "$FILENAMEONLY" 160
+	lameitq "$FILENAMEONLY" VBRq5
+	tagit "$FILENAMEONLY" VBRq5
+	lameit "$FILENAMEONLY" $BITRATE
+	tagit "$FILENAMEONLY" $BITRATE
+else
+	lameit "$FILENAMEONLY" $BITRATE
+	tagit "$FILENAMEONLY" $BITRATE
+fi

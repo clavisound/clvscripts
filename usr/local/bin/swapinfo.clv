@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+for i in /proc/[1-9]*
+do
+#	echo "proc: $i"
+	CMDLINE=$( cat $i/cmdline )
+	echo -n "Command line: $CMDLINE"
+	PRGNAM=$( cat $i/comm )
+	echo -n " Program: $PRGNAM"
+#	VMSWAP=$( grep Swap $i/status )
+	VMSWAP=$( cat $i/status | grep VmSwap || echo " NOSWAP" )
+	echo -e " $VMSWAP\n"
+done
+

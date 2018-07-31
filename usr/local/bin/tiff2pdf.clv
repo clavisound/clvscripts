@@ -1,0 +1,31 @@
+#!/bin/bash
+# Requires libtiff
+#
+# This programm convert many tiffs in a folder to pdf.
+#
+# TODO: add temp variable to multipage.tiff
+
+TEMP=${TEMP:-/mnt/tempfs}
+# if TEMP folder is not exists, default to system wide /tmp
+if [ ! -e $TEMP ]; then
+	TEMP=/tmp
+fi
+FOLDER=$1
+
+# TODO: you need to embrace the options with quotes..., no good practice.
+TIFF2PDFOPTIONS=$2
+
+if [ "$FOLDER" == '' ]; then
+	echo "Gime a folder to find your sorted tiffs! ex. $0 ~/my_sorted_tiffs"
+fi
+
+if [ "$FOLDER" == './' ]; then
+	FOLDER=`pwd`
+fi
+
+tiffcp $FOLDER/*.tiff $TEMP/multipagetiff.tiff
+
+tiff2pdf $TIFF2PDFOPTIONS -z $TEMP/multipagetiff.tiff -o $FOLDER/`basename $FOLDER`.pdf
+echo "tiff2pdf $TIFF2PDFOPTIONS -z $TEMP/multipagetiff.tiff -o $FOLDER/`basename $FOLDER`.pdf"
+
+rm $TEMP/multipagetiff.tiff

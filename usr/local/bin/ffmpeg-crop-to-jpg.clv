@@ -1,0 +1,33 @@
+#!/bin/bash
+FILE=$1
+MINUTEJPG=$2
+SECONDJPG=$3
+
+if [ $FILE = '']; then
+	echo "This script uses ffmpeg to create cropped jpg's. Choose the crop"
+	echo "you like."
+	echo "USAGE: $0 FILE MINUTE SECOND"
+	exit 1
+fi
+
+if [ "$MINUTEJPG" = '' ]; then
+	echo "You didn't specify minute, I select the 10nd minute."
+	MINUTEJPG=${MINUTEJPG:-10}
+fi
+
+if [ "$SECONDJPG" = '' ]; then
+	echo "You didn't specify minute, I select the 10nd minute."
+	SECONDJPG=${SECONDJPG:-00}
+fi
+
+for CROP in 416 432 544 576
+do
+	echo "ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP".%03d.jpg"
+	echo
+	# BUG?
+       	ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP".%03d.jpg
+       	echo "ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP".%03d.jpg"
+	# ffmpeg -i $FILE -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -vf crop=720:$CROP "$FILE"."$CROP".%03d.jpg
+	# I can't create only one frame. Delete the first frame
+	rm "$FILE"."$CROP".002.jpg
+done

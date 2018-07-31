@@ -1,0 +1,78 @@
+#!/bin/bash
+# Written by clavisound, Feb-2013
+# Update on Apr-2013 for Nexus S, and more help for options.
+# Documentation: http://public.hronopik.de/vid.stab/features.php?lang=en
+#
+# TODO: x264 (via -y ffmpeg ?)
+FILE=$1
+VBITRATE=${VBITRATE:-2000} # for Samsung-GT-S8500 720p I suggest 7000. Use 2000 for VGA 480p
+STABILIZEOPTIONS=${STABILIZEOPTIONS:-}
+TRANSFORMOPTIONS=${TRANSFORMOPTIONS:-}
+EXTRAOPTIONS=${EXTRAOPTIONS:-}
+DEVICE=${DEVICE:-"Nexus S"}
+
+if [ "$DEVICE" != '' ]; then
+	echo "Looking for specific options for device $DEVICE".
+	case $DEVICE in
+		"Nexus S" )
+			echo -e "Found! ---"
+		echo "Enabling EXTRAOPTIONS=\"--export_fps 30\" # otherwise, transcode encodes @random fps!"
+		EXTRAOPTIONS="--export_fps 30" # otherwise, transcode encodes @random fps!
+		NOAUDIO=",null" # Don't output audio. It has ticks.
+		;;
+		*)
+			echo "Options for $DEVICE not found"
+		;;
+	esac
+fi
+
+if [ "$FILE" = '' ]; then
+	echo "Hey man, gimme a file to work!"
+	echo "OPTIONS are VBITRATE, STABILIZEOPTIONS, TRANSFORMOPTIONS, EXTRAOPTIONS"
+	echo "If you have shaky try STABILIZEOPTIONS=\"=shakiness=8\". Default is 4."
+	echo "By the way. Documentation for options is here."
+	echo "http://public.hronopik.de/vid.stab/features.php?lang=en"
+	exit 1
+fi
+
+if [ ! -e "$FILE" ]; then
+	echo "File "$FILE" not found. Exiting."
+	exit 1
+fi
+
+for USEROPTIONS in $STABILIZEOPTIONS $TRANSFORMOPTIONS
+do
+	if [ $USEROPTIONS != '' ]; then
+		echo "USEROPTIONS: $USEROPTIONS detected."
+		echo "Removing trf file to reset the data."
+		rm "$FILE".trf
+	fi
+done
+
+function audio_nexus_s (){
+if [ "$DEVICE" = "Nexus S" ]; then
+	echo "Using different options for $DEVICE."
+	# TOTEST
+	# encode with no audio (transcode creates audio with clicks)
+	transcode -J transform$TRANSFORMOPTIONS -i "$FILE" -w $VBITRATE -y xvid$NOAUDIO $EXTRAOPTIONS -o "$FILE".stabilize.$STABILIZEOPTIONS$TRANSFORMOPTIONS.avi
+	# encode only audio with ffmpeg AND with 40k
+	ffmpeg -i "$FILE" -vn -acodec libmp3lame -ab 40k -y "$FILE".mp3
+	# merge it
+	avimerge -i "$FILE".stabilize.$STABILIZEOPTIONS$TRANSFORMOPTIONS.avi -p "$FILE".mp3 -o "$FILE".stabilize.final.$STABILIZEOPTIONS$TRANSFORMOPTIONS.avi
+	mv "$FILE".stabilize.final.$STABILIZEOPTIONS$TRANSFORMOPTIONS.avi "$FILE".stabilize.$STABILIZEOPTIONS$TRANSFORMOPTIONS.avi
+exit
+fi
+}
+
+if [ -e "$FILE.trf" ]; then
+	echo "--> trf (transform) file: ($FILE.trf) found. Executing only second pass. <--"
+	echo "transcode -J transform -i "$FILE" -w $VBITRATE "$EXTRAOPTIONS" -y xvid$NOAUDIO -o "$FILE".stabilize.avi"
+	sleep 2
+	audio_nexus_s # if we encode a nexus_s video then discard audio. Encode it with only 40k with ffmpeg and merge it with avimerge.
+	transcode -J transform -i "$FILE" -w $VBITRATE $EXTRAOPTIONS -y xvid$NOAUDIO -o "$FILE".stabilize.avi
+else
+	transcode -J stabilize$STABILIZEOPTIONS -i "$FILE" -y null,null $EXTRAOPTIONS -o dummy
+	audio_nexus_s
+	transcode -J transform$TRANSFORMOPTIONS -i "$FILE" -w $VBITRATE -y xvid $EXTRAOPTIONS -o "$FILE".stabilize.$STABILIZEOPTIONS$TRANSFORMOPTIONS.avi
+fi
+

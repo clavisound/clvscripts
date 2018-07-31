@@ -1,0 +1,19 @@
+#!/bin/bash
+# Requires: Works only on linux?
+# clavisound. Apr-2015
+
+SOURCE=`realpath $1` # grab realpath
+FILENAME=`basename $1`
+
+if [ "$SOURCE" = '' ]; then
+	echo "USAGE: $0 SOURCE"
+	exit
+fi
+
+DIR=`dirname $SOURCE`/linked-by-date
+mkdir -p $DIR # create subfolder
+
+RENAMEDFORLINK=$(ls -l --time-style=+%Y-%m-%d__%H_%M_%S "$FILENAME" | gawk -F' ' ' { print $6, $7, $8 }' | sed -e 's/ $//' -e 's/ /_/')
+
+cd $DIR
+ln -vs ../$FILENAME ./"$RENAMEDFORLINK"

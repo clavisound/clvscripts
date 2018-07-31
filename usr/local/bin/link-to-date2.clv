@@ -1,0 +1,27 @@
+#!/bin/bash
+# Requires: Works only on linux?
+# clavisound. Apr-2015
+# modified for mass link (folder) in Apr-2017
+
+SOURCE=`realpath $1` # grab realpath
+if [ "$SOURCE" = '' ]; then
+	echo "USAGE: $0 FOLDERSOURCE"
+	exit
+fi
+
+# DIR=`dirname $SOURCE`/linked-by-date
+# mkdir -p $DIR # create subfolder
+DIR=$SOURCE/linked-by-date
+mkdir -p $DIR
+cd $DIR
+
+for i in $SOURCE/*
+do
+	if [ -f $i ]; then
+	FILENAME=`basename $i`
+	RENAMEDFORLINK=$(ls -l --time-style=+%Y-%m-%d__%H_%M_%S "$i" | gawk -F' ' ' { print $6 }' | sed -e 's/ $//' -e 's/ /_/')
+	RENAMEDFORLINK=$RENAMEDFORLINK\_\_$FILENAME
+
+	ln -vs ../$FILENAME ./"$RENAMEDFORLINK"
+	fi
+done

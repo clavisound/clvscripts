@@ -1,0 +1,61 @@
+#!/bin/bash
+# Requires: /etc/sbopkg/sbopkg.conf
+# September-2012, written by Michales Michaloudes (clavisound)
+if [ "$1" == '' ]; then
+	echo "gime a list to work"
+	exit
+fi
+
+LIST=$1
+
+# if $1 is file create a file, else create a file with one programm
+if [ -e $LIST ];then
+	cat $LIST > /tmp/sbolist
+else
+	echo $LIST > /tmp/sbolist
+fi
+
+BROWSER=${BROWSER:-firefox}
+RANDOMNUMBER=$RANDOM
+TMPCLV=${TMPCLV:-/tmp/SBo-clv} # don't use /???/SBo. Conflicts with cfourcc and ladspa_dsk
+BREAK=${BREAK:-no}
+MYDIR=`pwd`
+source /etc/sbopkg/sbopkg.conf.sandisk8g
+
+function continue_keyb() {
+echo -n "Continue? ('yes', or 'y'): "
+read KEYB
+if [ $KEYB = "yes" ] || [ $KEYB = "y" ]; then
+	echo "ok master."
+else
+	exit
+fi
+}
+
+
+for PACKAGE in `cat /tmp/sbolist`
+do
+	SBOtar=$(dirname $PACKAGE.tar.gz)
+	PKGname=$(basename $PACKAGE)
+	PKGfolder=$(echo $PACKAGE | sed -e 's/\/.*//g')
+	if [ ! -e $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/$PKGfolder/$PKGname.tar.gz ]; then
+		echo "--ATTENTION: File $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/$PKGfolder/$PKGname.tar.gz is absent!"
+		echo "Check the category:"
+		find $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/ -name $PKGname.tar.gz
+		echo "--ATTENTION: File $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/$PKGfolder/$PKGname.tar.gz is absent!" | tee - >> $MYDIR/mypackages-buildmySBopackages.notfound
+	else
+		rm -r $TMPCLV/$PKGname/
+		mkdir -p $TMPCLV
+		cd $TMPCLV/
+		tar xvf $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/$PKGfolder/$PKGname.tar.gz
+		source $TMPCLV/$PKGname/$PKGname.info
+		for VAR in HOMEPAGE; do
+			echo "$PRGNAM".SlackBuild version: "$VERSION"
+			echo "Source: $DOWNLOAD"
+		done
+		$BROWSER $HOMEPAGE
+	fi
+done
+
+rm /tmp/sbolist
+#rm -r /tmp/SBo

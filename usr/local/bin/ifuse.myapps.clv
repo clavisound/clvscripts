@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# by Michales Michaloudes <clavisound> 2012
+
+# TODO: put GPL here
+# TODO: Make a list on user command (check_reqs)
+
+# requires: ideviceinstaller, ifuse, usbmuxd
+
+FUSES=0
+
+count_fuses(){
+	FUSES=$FUSES + 1
+	if [ $FUSES -gt 5 ]; then
+		echo "Maximum mount count: $FUSES for iOS5 is reached."
+		exit
+	fi
+}
+
+check_reqs()
+{
+for PROG in ideviceinstaller ifuse usbmuxd
+do
+	which $PROG &>/dev/null
+	if [ $? != 0 ]; then
+		echo "Error: Either $PROG is not installed either you don't have permissions."
+		echo "Program is exiting."
+		exit 1
+	fi
+done
+}
+
+#check_reqs
+
+#ideviceinstaller -l > /tmp/$USER.appids
+#sed -i -e 's/ -.*//' -e '/Total: .* apps/d' /tmp/$USER.appids
+
+if [ ! -e ~/.appids ]; then
+	echo "Error: create a file ~/.appids with 5 apps you want to mount."
+	echo "Example: com.recessionapps.downloaderFree"
+	echo "You can find the names of the installed apps with ideviceinstaller -l"
+	echo "Specify the apps to mount in ~/.appids file"
+	exit 1
+fi
+
+if [ "$1" == "" ]; then
+	cat ~/.appids | while read LINE
+	do 
+		# TODO: don't read appids, but folders.
+		mkdir -p ~/iOS/$LINE
+		# was ok with libimobiledevice-1.0.6 idevicenstaller-1.0.0 usbmuxd-1.0.6
+	       	#ifuse -o sync --appid $LINE ~/iOS/$LINE 
+	       	ifuse -o sync --documents $LINE ~/iOS/$LINE
+		echo "mounted $LINE on ~/iOS/$LINE"
+		echo "fusermount -u ~/iOS/$LINE"
+	done
+else
+		mkdir -p ~/iOS/$1
+       		ifuse -o sync --documents $1 ~/iOS/"$1" && echo "mounted $1 on ~/iOS/$1"
+		echo "fusermount -u ~/iOS/$1"
+fi
+
+# okwith libimobiledive-1.0.7, ifuse-1.1.2
+mkdir -p ~/iOS/user-area
+ifuse ~/iOS/user-area
+echo "iOS user-area mounted"

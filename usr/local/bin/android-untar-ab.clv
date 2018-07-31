@@ -1,0 +1,16 @@
+#!/bin/bash
+# Tip stolen from: 
+# http://android.stackexchange.com/questions/28481/how-do-you-extract-an-apps-data-from-a-full-backup-made-through-adb-backup
+
+# how it works
+# Explanation: author creates a standard Zlib file header for a .tar.gz file with printf command (0x1F 0x8B is a signature, 0x08 is the compression method, 0x00 are flags and 4 x 0x00 is timestamp), then appends to this header the contents of backup.ab file, starting from offset 25d. Such stream is a valid .tar.gz file, and the tar xfvz command recognizes it as such, so it can successfully uncompress the stream. 
+
+FILE=$1
+
+if [ "$FILE" = "" ]; then
+	echo "Magic numbers: ( printf "\x1f\x8b\x08\x00\x00\x00\x00\x00" ; tail -c +25 FILE ) |  tar tfv -"
+	exit 1
+fi
+
+( printf "\x1f\x8b\x08\x00\x00\x00\x00\x00" ; tail -c +25 $FILE ) |  tar xfvz -
+

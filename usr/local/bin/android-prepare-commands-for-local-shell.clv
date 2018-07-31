@@ -1,0 +1,8 @@
+#!/bin/bash
+# Code stolen from 
+# https://gist.githubusercontent.com/ohadcn/f2e5c2436c67cd8180e2/raw/fd821040ab68a1d576131ddaca78827f5968b6a3/download_apk.sh
+
+for APK_PATH in $(adb shell pm list packages -f -3|sed 's/package://g'|sed s/=.*$//g) ; do
+	echo "bu 1 backup -apk $APK_PATH /sdcard/bck/"
+done
+

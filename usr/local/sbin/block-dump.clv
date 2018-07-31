@@ -1,0 +1,12 @@
+#!/bin/bash
+SLEEPTIME=$1
+if [ $SLEEPTIME -gt 10 ]; then
+	echo "Sleep time too big. Reducing to 10 seconds."
+	SLEEPTIME=10
+fi
+/etc/rc.d/rc.syslog stop
+sysctl -e vm.block_dump=1
+sleep $SLEEPTIME
+sysctl -e vm.block_dump=0
+dmesg | tail -40
+/etc/rc.d/rc.syslog start

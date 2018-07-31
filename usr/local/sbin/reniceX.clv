@@ -1,0 +1,46 @@
+#!/bin/bash
+XMESSAGEOPTIONS="-timeout 3"
+USERNICE=$1
+
+if [ ! "`id -u`" = "0" ]; then
+ 	echo "You need to run this as root or with sudo."	
+	exit
+fi
+
+function autopriority_X (){
+	PStail=$(ps -o nice,comm,pid `sudo /sbin/pidof X` | tail -1)
+	CURRENTNICE=$(echo $PStail | cut -b 1-2)
+#	echo $CURRENTNICE;
+	if [ $CURRENTNICE -gt 0 ]; then
+		USERNICE=0
+	else
+		USERNICE=19	
+	fi
+	echo "Current priority of X is: $CURRENTNICE. New priority is $USERNICE."
+}
+if [ "$USERNICE" = "" ]; then
+	echo "You didn't gave me a value. Autoconfigurating."
+	autopriority_X
+fi
+
+# accept value from 0 to 19
+# BUG (grammar)
+if [ $USERNICE -lt 0 ] || [ $USERNICE -gt 19 ]; then
+	echo "Accepted value is 0 (regular) to 19 (idle)."
+	echo "Wrong value detected. Using default value (0)."
+	renice 0 -p `sudo /sbin/pidof X`
+	exit
+fi
+
+# X is in low priority, give jack the best priority
+# TODO: check for jack existence..
+function jack-rt (){
+if [ $USERNICE == 19 ]; then
+	renice -19 -p `sudo /sbin/pidof jackd` || 
+	/usr/bin/xmessage $XMESSAGEOPTIONS jackd is on highest priority
+else
+	/usr/bin/xmessage $XMESSAGEOPTIONS jackd is off..
+fi
+}
+
+renice $USERNICE -p `sudo /sbin/pidof X`

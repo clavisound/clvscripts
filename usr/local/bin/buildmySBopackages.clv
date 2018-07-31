@@ -1,0 +1,191 @@
+#!/bin/bash
+# Requires: SBoptimize.clv, /etc/sbopkg/sbopkg.conf, /etc/url-conv.sed, 
+# August-2012, written by Michales Michaloudes (clavisound)
+# Feb-2013, added options.
+# Apr-2013, try to add comparison with web version.
+# set -e
+
+OPTIMIZE=$ARCH
+
+# Create a folder add add there file with $PKGname.options. ex. filename
+# transcode.options with contents: XVID=yes X264=yes (in one line)
+OPTIONSFOLDER=${OPTIONSFOLDER:-/home/krgsf/.mySBO}
+if [ "$1" == '' ]; then
+	echo "gime a list to work"
+	echo "Options @ $OPTIONSFOLDER"
+	echo "ARCH=core2 and -o at the end for optimization"
+	echo "SBOPKGCONF=/etc/sbopkg/sbopkg.conf.usb for other conf"
+	exit
+fi
+
+LIST=$1
+
+# if $1 is file create a file, else create a file with one programm
+if [ -e $LIST ];then
+	cat $LIST | grep -v "#" > /tmp/sbolist
+else
+	echo $LIST > /tmp/sbolist
+fi
+
+RANDOMNUMBER=$RANDOM
+TMPCLV=${TMPCLV:-/tmp/SBo-clv} # don't use /???/SBO. Conflicts with cfourcc and ladspa_dsk
+BREAK=${BREAK:-no}
+MYDIR=`pwd`
+SBOPKGCONF=${SBOPKGCONF:-/etc/sbopkg/sbopkg.conf}
+source $SBOPKGCONF
+
+# TODO: value in sed.
+# Don't to automatic listing. Need to manually edit the list for dependency.
+# MAINTAINER=${MAINTAINER:-Michaloudes}
+# echo "grep "$MAINTAINER" $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/*/*/*.info | sed -e 's/.*13.37\///' -e 's/.info.*//'"
+
+function continue_keyb() {
+echo -n "Continue? ('yes', or 'y'): "
+read KEYB
+if [ $KEYB = "yes" ] || [ $KEYB = "y" ]; then
+	echo "ok master."
+else
+	exit
+fi
+}
+
+function SBo_variables() {
+	SBOtar=$(dirname $PACKAGE.tar.gz)
+	PKGname=$(basename $PACKAGE)
+	PKGcategory=$(echo $PACKAGE | sed -e 's/\/.*//g')
+}
+
+function TODOembed2compareSBo() {
+	# See the various files on .tar.gz and compare them with local. If (diff)erent open vim
+	for typeSBo in info README
+	do
+		echo "Comparing $PKGname.$typeSBo"
+		cmp -s ~/SlackBuilds/SBo/local/$PKGname/$PKGname.$typeSBo $PKGname/$PKGname.$typeSBo
+		if [ $? -eq 1 ]; then
+			vim -d ~/SlackBuilds/SBo/local/$PKGname/$PKGname.$typeSBo $PKGname/$PKGname.$typeSBo
+		fi
+	done
+	diff ~/SlackBuilds/SBo/local/$PKGname/slack-desc $PKGname/slack-desc
+		if [ $? -eq 1 ]; then
+			echo HERE
+			vim -d ~/SlackBuilds/SBo/local/$PKGname/slack-desc $PKGname/slack-desc
+		fi
+	exit
+	vim -d ~/SlackBuilds/SBo/local/$PKGname/$PKGname.SlackBuild $TMPCLV/SBo-web/$PKGname/$PKGname.SlackBuild
+}
+
+function compareSBo() {
+	# download the web version and compare with vi
+	mkdir -p $TMPCLV/SBo-web
+	cd $TMPCLV/SBo-web
+	wget http://slackbuilds.org/slackbuilds/$REPO_BRANCH/$PKGcategory/$PKGname.tar.gz -O $PKGname-SBo.tar.gz
+	tar xf $PKGname-SBo.tar.gz
+	# BUG:	TODOembed2compareSBo (this function does not work: WHY?)
+
+	# Workaround with a hammer.
+	vim -d ~/SlackBuilds/SBo/local/$PKGname/$PKGname.SlackBuild $TMPCLV/SBo-web/$PKGname/$PKGname.SlackBuild
+	vim -d ~/SlackBuilds/SBo/local/$PKGname/$PKGname.info $TMPCLV/SBo-web/$PKGname/$PKGname.info
+	vim -d ~/SlackBuilds/SBo/local/$PKGname/slack-desc $TMPCLV/SBo-web/$PKGname/slack-desc
+	vim -d ~/SlackBuilds/SBo/local/$PKGname/README $TMPCLV/SBo-web/$PKGname/README
+}
+
+function buildPKG() {
+	rm -fr $TMPCLV/$PKGname/
+	mkdir -p $TMPCLV
+	cd $TMPCLV/
+	tar xvf $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/$PKGcategory/$PKGname.tar.gz
+	source $TMPCLV/$PKGname/$PKGname.info
+	# TODO: if option -u (update) is set check if we already have the latest version
+	cd $SRCDIR
+	echo $SRCDIR; sleep 3
+
+	# Download array, and extract SRCname
+	# handle the multiliners with array.
+	DOWNLOAD_ARR=($DOWNLOAD)
+	NARRAYDOWN=$(expr ${#DOWNLOAD_ARR[@]} - 1)
+	if [ $NARRAYDOWN = 0 ]; then
+		SRCname=$(echo $DOWNLOAD | sed -f /etc/url-conv.sed | sed -e 's/http.*\///g' -e 's/^ftp.*\///g')
+		if [ ! -e $SRCname ]; then
+			wget $DOWNLOAD
+			echo wget $DOWNLOAD
+		fi
+		# OH! The source is here. Link it!
+		echo "Linking source $SRCname"
+		ln -s $SRCDIR/$SRCname $TMPCLV/$PKGname || echo "Ooops, source is absent from $SRCDIR"
+		else
+		for EACHDOWNLOAD in ${DOWNLOAD}
+			do
+				SRCname=$(echo $EACHDOWNLOAD | sed -f /etc/url-conv.sed | sed -e 's/http.*\///g' -e 's/^ftp.*\///g')
+			if [ ! -e $SRCname ]; then
+				wget $DOWNLOAD
+				echo wget $DOWNLOAD
+			fi
+			# OH! The source is here. Link it!
+			echo "Linking source $SRCname"
+			ln -s $SRCDIR/$SRCname $TMPCLV/$PKGname || echo "Ooops, source is absent from $SRCDIR"
+			done
+		fi
+		cd $TMPCLV/$PKGname
+		# clavisound hardcoded optimization: substitude 64bit with pentium-m
+		if [ "$2" = "-o" ]; then
+			echo "Optimizing for $OPTIMIZE according with your ARCH enviroment (export ARCH)."
+			$MYSBOOPTIONS SBoptimize.clv $PKGname.SlackBuild > $PKGname.SlackBuild.opt
+			mv -v $PKGname.SlackBuild.opt $PKGname.SlackBuild
+		# DEBUG
+		#	head -46 $PKGname.SlackBuild
+		#	tail $PKGname.SlackBuild
+		#	exit
+		fi
+		if [ "$2" = "-c" ]; then
+			compareSBo
+		fi
+		sh $PKGname.SlackBuild || echo "$PKGname build error." \
+			>> $MYDIR/$LIST.error
+		# BUG: Does not work work with options
+	        # tested with transcode / timidity
+		# shell sees option as command: AC52DEC=yes `command not found'
+		# echo "$MYSBOOPTIONS sh $PKGname.SlackBuild" > build.command
+		# `cat build.command`
+		# upgradepkg else installpkg
+		upgradepkg --install-new --reinstall $OUTPUT/$PKGname-$VERSION*.t?z || installpkg $OUTPUT/$PKGname-$VERSION*.t?z
+	        if [ $? -gt 0 ]; then
+			echo "Problem with $PKGcategory/$PKGname" >> $MYDIR/$LIST.status
+			break
+		fi
+		rm -r $TMP/SBo/*
+		#rm -r $TMPCLV/
+		if [ $BREAK = "yes" ] || [ $BREAK = "y" ]; then
+			continue_keyb
+		fi
+		# bug with Virtual Box
+		# sbopkg -i $PKGname
+
+}
+
+for PACKAGE in `cat /tmp/sbolist`
+do
+	SBo_variables
+	if [ -e $OPTIONSFOLDER/$PKGname.options ]; then
+		MYSBOOPTIONS=$(< $OPTIONSFOLDER/$PKGname.options)
+		echo "Enabling options: $MYSBOOPTIONS"
+		sleep 2
+		export $MYSBOOPTIONS
+	else
+		MYSBOOPTIONS=''
+		unset $MYSBOOPTIONS
+	fi
+	if [ ! -e $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/$PKGcategory/$PKGname.tar.gz ]; then
+		echo "--ATTENTION: File $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/$PKGcategory/$PKGname.tar.gz is absent!"
+		PKGcategory=$(find $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/ -name $PKGname.tar.gz | gawk -F "/" ' { print $8 "/"} ' )
+		echo "Check the category: $PKGcategory"
+		# I have find the catefory, build with that!
+		if [ "$PKGcategory" = "" ]; then
+			echo "--ATTENTION: File $REPO_ROOT/$REPO_NAME/$REPO_BRANCH/$PKGcategory/$PKGname.tar.gz is absent!" | tee - >> $MYDIR/$LIST.notfound
+			exit
+		fi
+	fi
+	buildPKG
+done
+
+rm /tmp/sbolist
+rm -r /tmp/SBo

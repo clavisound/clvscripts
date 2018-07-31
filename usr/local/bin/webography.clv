@@ -1,0 +1,24 @@
+#!/bin/bash
+# TODO: handle strange and empty characters
+#
+#alias webography='wget -k --user-agent="clavisound.gr" -e robots=off --wait 1 -p -P webography/'
+#alias webography_eval='wget -E -k --user-agent="clavisound.gr" -e robots=off --wait 1 -p -P webography/'
+WGETOPTIONS=${WGETOPTIONS:--E -k --user-agent="clavisound.gr" -e robots=off --wait 1 -p -P webography/}
+URL=$(echo $1 | sed -f /etc/url-conv.sed)
+FILENAME=$(echo $URL | sed -e 's/.*\///g')
+
+STARTURL=$(echo $1 | cut -d':' -f1)
+if [ $STARTURL == "https" ]; then
+	WGETOPTIONS="$WGETOPTIONS --no-check-certificate"
+	echo "Downloading without certificate checking!"
+fi
+
+wget $WGETOPTIONS "$URL" 
+
+# keep only last url
+FILE_AND_PATH=$(echo "$URL" | sed -e 's+.*\/++')
+if [ "$FILE_AND_PATH" == "" ]; then
+	echo "URL is bad (probable ends with /), aborting"
+else
+	echo "$URL" > "$FILE_AND_PATH".link
+fi

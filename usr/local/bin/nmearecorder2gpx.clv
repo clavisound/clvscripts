@@ -1,0 +1,16 @@
+#!/bin/bash
+# nmea recorder on android is buggy
+# This script removes the numbers in front and the calls nmea2gpx.clv
+
+# Requires: gpsbabel, nmea2gpx.clv
+
+FILE=$1
+
+if [ ! -e $FILE ]; then
+	echo "File $FILE is missing."
+	exit 1
+fi
+
+cat $FILE | sed -e 's/^.*;//g' > $FILE.clean
+nmea2gpx.clv $FILE.clean
+rm $FILE.clean

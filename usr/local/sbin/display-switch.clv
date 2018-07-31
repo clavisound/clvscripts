@@ -1,0 +1,32 @@
+#!/bin/bash
+TIMINGS="30 35 40"
+XMESSOPT="-timeout 2"
+
+function setdpmson()
+{
+	xset -display :$DSPL.0 dpms $TIMINGS
+}
+function setdpmsoff()
+{
+	xset -display :$DSPL.0 dpms 0 0 0
+	xmessage $XMESSOPT dpms $TIMINGS display :$DSPL.0
+}
+
+# What dpms we have?
+xset dpms q | grep -q 'Off: 0'
+if [ $? == 0 ]; then
+	# we don't have dpms. Enable dpms
+
+	# TODO for all screens
+#	for i in /tmp/.X?-lock
+#	do 
+#		DSPL=$(echo $i | gawk -F '-lock' ' { print $1 }' | sed 's+.*\.X++g')
+#		setdpmson $DSPL
+#	done
+	xset dpms $TIMINGS
+	xmessage $XMESSOPT dpms $TIMINGS
+else
+	# we have dpms. Disable
+	xset dpms 0 0 0
+	xmessage $XMESSOPT dpms off
+fi

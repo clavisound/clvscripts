@@ -1,0 +1,39 @@
+#!/bin/bash
+NEWROOT=$1
+
+if [ "$NEWROOT" == '' ]; then
+	echo "Gime a new root to work"
+	exit 1
+fi
+
+function checkError(){
+if [ $? == 1 ]; then
+	echo "Error $DEV"
+	exit 1
+fi
+}
+
+# create the folders
+mkdir -p $NEWROOT/proc
+mkdir -p $NEWROOT/dev
+
+# mount the folders
+mount -t proc none $NEWROOT/proc
+DEV=proc; checkError $DEV
+mount -o bind /dev $NEWROOT/dev
+DEV=dev; checkError $DEV
+mount -o bind /dev $NEWROOT/dev
+DEV=sys; checkError $DEV
+
+# chroot
+echo "chrooting to $NEWROOT"
+chroot $NEWROOT
+
+# restore mounts.
+echo "unmounting $NEWROOT/proc and $NEWROOT/dev from chroot enviroment"
+umount $NEWROOT/proc
+DEV=dev; checkError $DEV
+umount $NEWROOT/dev
+DEV=dev; checkError $DEV
+umount $NEWROOT/dev
+DEV=sys; checkError $DEV

@@ -1,0 +1,18 @@
+#!/bin/bash
+# TODO: proper Mbytes
+
+if [ "$1" == "" ]; then
+	IFACE=${IFACE:-wlan0}
+else
+	IFACE=$1
+	grep "$IFACE" -q /proc/net/dev
+	if [ $? = 0 ]; then
+		RX=$(grep $IFACE /proc/net/dev | gawk -F' ' ' { print $2/1000000 } ')
+		TX=$(grep $IFACE /proc/net/dev | gawk -F' ' ' { print $10/1000000 } ')
+		echo "Interface: $IFACE, Rx bytes: ${RX} Mbytes, Tx bytes: $TX MBytes"
+	else
+		echo "interface $IFACE is not exist!"
+		exit 1
+	fi
+fi
+

@@ -1,0 +1,28 @@
+#!/bin/bash
+SOURCEFOLDER=$1
+TARGETFOLDER=$2
+MAXDEPTH=$3
+
+if [ "$3" == '' ]; then
+	echo "Usage: $0 SOURCEFOLDER TARGETFOLDER DEPTH (number)."
+	exit 1
+fi
+
+#for i in "$SOURCEFOLDER"/*.JPG "$SOURCEFOLDER"/*.jpg "$SOURCEFOLDER"/*.NEF "$SOURCEFOLDER"/*.AVI
+for i in "$SOURCEFOLDER"/*
+do 
+	if [ -f "$i" ]; then
+		FILE=$(echo $i | sed -e 's+.*/++' -e 's+//++')
+		FINDFILE=$(find "$TARGETFOLDER" -maxdepth $MAXDEPTH -name $FILE)
+		if [ ! "$FINDFILE" == '' ]; then
+			echo -e "$i -- found -- in $FINDFILE \n"
+			cmp $i $FINDFILE
+			if [ $? == 1 ]; then
+				REAL=`realpath $i`
+				echo "$REAL is differ from $FINDFILE"
+				echo $REAL >> DIFFER.tocheck
+			fi
+			echo rm $i >> FOUND.torm.command
+		fi
+	fi
+done 

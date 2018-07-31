@@ -1,0 +1,232 @@
+#!/bin/bash
+# TODO: gui for X
+# TODO: udev for power user or sudo
+# TODO: functions
+# TODO: Lowest frequency
+# TODO: HZ_OR_ECHO must converted to integer or to string accordingly
+
+UPTHRESHOLD=11 # ThinkPad X40: 11 -> ok with pianoteq
+UPTHRESHOLDORIG=95 # X40: 20 X61: 95
+NUMBEROFCPUS=$2
+
+if [ ! -e /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq ]; then
+	echo "Cpu frequency not available. Alaska is melting for you."
+	exit 1
+fi
+
+echo "Usage: $0 1 (number of cpus 0=1!)" 
+echo "Check your CPU capabilities:"
+grep . /sys/devices/system/cpu/cpu0/cpufreq/* | sed -e 's/.*\/cpufreq//g' -e 's/000 / /g'
+
+echo
+echo
+
+function cpus (){
+#	CORESLIVE=`cat /sys/devices/system/cpu/online | tr -d 0-` # 1 = 2 cpus!
+	CORESLIVE=$(grep processor /proc/cpuinfo | wc -l) # IN loops 2 = 2!
+}
+
+function governor_is_available (){
+	if [ ! -e /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
+        	echo "Governors not available." 
+		sleep_and_exit
+        	exit 1
+	fi
+}
+
+function sleep_and_exit (){
+echo "auto exit in 3 seconds."
+sleep 3
+}
+
+function upthreshold (){
+	# TODO: study about this...
+	# BUG: works only with root. Permission problem (UDEV?)
+	echo "Adjusting up_threshold for lower latency to: $UPTHRESHOLD."
+	#	echo $UPTHRESHOLD > /sys/devices/system/cpu/cpu0/cpufreq/ondemand/up_threshold || echo "Oooops, no permission?" # for older kernel
+	echo $UPTHRESHOLD > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold || echo "Oooops, no permission?" # for older kernel
+}
+
+function restoreupthreshold (){
+	echo $UPTHRESHOLDORIG > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold || echo "Oooops, no permission?" # for older kernel
+}
+
+function check_write (){
+if [ ! -w /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq ]; then
+	echo "Error. I don't have permission to change the CPU ticks!"
+	echo "Correct the permissions and re-start the program"
+	echo "Or execute this script as root."
+	exit
+fi
+}
+
+function reset_lowest_and_maximum (){
+	# it needs ondemand or userspace governor
+	if [ ! -e /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq ]; then
+		echo "Error. Cpu minimum frequency not found!"
+		check_write
+		exit
+	fi
+	cpus
+	CPUCOUNT=0
+	while [ ${CPUCOUNT} -lt ${CORESLIVE} ]; do
+		MINFREQ=`cat /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/cpuinfo_min_freq`
+		echo $MINFREQ > /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/scaling_min_freq
+		MAXFREQ=`cat /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/cpuinfo_max_freq`
+		echo $MAXFREQ > /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/scaling_max_freq 
+		let CPUCOUNT=CPUCOUNT+1
+	done
+}
+
+function echo_cpu (){
+	cpus
+	CPUCOUNT=0
+	while [ ${CPUCOUNT} -lt ${CORESLIVE} ]; do
+		echo $1 > /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/$2
+		echo "echo $1 > /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/$2"
+		let CPUCOUNT=CPUCOUNT+1
+	done
+}
+
+# Disabling / enabling CPUS by user argument
+if [ ${NUMBEROFCPUS} -eq 0 ]; then
+	# check how many offline CPUs we have
+	ONLINECPU=$(cat /sys/devices/system/cpu/online)
+	CORESPRESENT=$(cat /sys/devices/system/cpu/present | tr -d 0-) # 1 = 2 cpus!
+	if [ "$ONLINECPU" != "0" ]; then
+		echo "Disabling all cpus except first-one"
+		echo "disabling CPU $ONLINECPU"
+		while [ ${CORESPRESENT} -gt 0 ]; do
+			echo 0 > /sys/devices/system/cpu/cpu$CORESPRESENT/online
+			let CORESPRESENT=CORESPRESENT-1
+		done
+	fi
+	sleep 1
+else
+	# check how many offline CPUs we have
+	OFFLINECPU=$(cat /sys/devices/system/cpu/offline)
+	if [ "$OFFLINECPU" = '' ]; then
+		OFFLINECPU=0
+		echo "All CPUS are online"
+	fi
+	CPUCOUNT=1
+	while [ ${OFFLINECPU} -gt 0 ]; do
+		echo 1 > /sys/devices/system/cpu/cpu$CPUCOUNT/online
+		let OFFLINECPU=OFFLINECPU-1
+	done
+	sleep 1
+fi
+
+if [ "$1" != "" ]; then
+	HZ_OR_ECHO=$1
+else
+	echo "b: for powersave"
+	echo "e: for minimum frequency."
+	echo "o: for ondemand (variable frequency depending on load)."
+	echo "c: compile or conservative (top 1.2Ghz)."
+	echo "p: for performance (maximum frequency)."
+	echo "m: for music with higher low frequency."
+	echo "n: for music with pianoteq."
+	echo "1: 1Ghz static."
+	echo "give a number from 6 to 50 for static Ghz."
+	read HZ_OR_ECHO
+fi
+
+if [ "$HZ_OR_ECHO" =  "e" ]; then
+	echo_cpu userspace scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	reset_lowest_and_maximum
+	MINFREQ=`cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq`
+	echo_cpu $MINFREQ scaling_setspeed #	echo $MINFREQ > /sys/devices/system/cpu/cpu?/cpufreq/scaling_setspeed
+	echo "CPU clock reduced to minimum: "
+	grep . /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_min_freq
+	sleep_and_exit
+elif [ "$HZ_OR_ECHO" =  "p" ]; then
+	echo_cpu userspace scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	reset_lowest_and_maximum
+	MAXFREQ=`cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq`
+	echo $MAXFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+	echo_cpu $MAXFREQ scaling_setspeed #	echo $MAXFREQ > /sys/devices/system/cpu/cpu?/cpufreq/scaling_setspeed
+	echo "CPU clock sky-rocket to maximum: `grep MHz /proc/cpuinfo`"
+	grep . /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_cur_freq
+	sleep_and_exit
+elif [ "$HZ_OR_ECHO" =  "1" ]; then
+	echo_cpu userspace scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	reset_lowest_and_maximum
+	FREQ=1000000
+	echo_cpu $FREQ scaling_setspeed #	echo $FREQ > /sys/devices/system/cpu/cpu?/cpufreq/scaling_setspeed
+	echo "CPU clock set to $FREQ. Let's see what the kernel thinks: `grep MHz /proc/cpuinfo`"
+	sleep_and_exit
+elif [ "$HZ_OR_ECHO" =  "2" ]; then
+	echo_cpu userspace scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	reset_lowest_and_maximum
+	FREQ=1200000
+	echo_cpu $FREQ scaling_setspeed #	echo $FREQ > /sys/devices/system/cpu/cpu?/cpufreq/scaling_setspeed
+	echo "CPU clock set to $FREQ. Let's see what the kernel thinks: `grep MHz /proc/cpuinfo`"
+	sleep_and_exit
+elif [ $HZ_OR_ECHO -gt 5 ] && [ $HZ_OR_ECHO -lt 50 ]; then
+	echo_cpu userspace scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	reset_lowest_and_maximum
+	FREQ="${HZ_OR_ECHO}00000"
+	echo_cpu $FREQ scaling_setspeed #	echo $FREQ > /sys/devices/system/cpu/cpu?/cpufreq/scaling_setspeed
+	echo "CPU clock set to $FREQ. Let's see what the kernel thinks: `grep MHz /proc/cpuinfo`"
+	sleep_and_exit
+elif [ "$HZ_OR_ECHO" =  "ondemand" ] || [ "$HZ_OR_ECHO" = "o" ]; then
+	governor_is_available
+	echo_cpu ondemand scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	restoreupthreshold
+	reset_lowest_and_maximum
+	echo "No of CPUS: $CORESLIVE adjusted to power on demand. Current Mhz:"
+	grep . /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_cur_freq
+	echo "Let's see what the kernel thinks: `grep MHz /proc/cpuinfo`"
+	sleep_and_exit
+elif [ "$HZ_OR_ECHO" ==  "music" ] || [ "$HZ_OR_ECHO" == "m" ]; then
+	governor_is_available
+	reset_lowest_and_maximum
+	RAISEMINFREQ=1200000
+	echo_cpu ondemand scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	echo $RAISEMINFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+	echo "No of CPUS: $CORESLIVE adjusted. Lowest frequency to $RAISEMINFREQ MHz. Current Mhz:"
+	grep . /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_cur_freq
+	upthreshold
+	sleep_and_exit
+
+elif [ "$HZ_OR_ECHO" ==  "pianoteq" ] || [ "$HZ_OR_ECHO" == "n" ]; then
+	governor_is_available
+	MINFREQ=600000
+	LOWERMAXFREQ=1000000
+	echo_cpu ondemand scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	upthreshold
+	echo $MINFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+	echo $LOWERMAXFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+	echo "No of CPUS: $CORESLIVE adjusted Maximum frequency capped to $LOWERMAXFREQ MHz. Current Mhz:"
+	grep . /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_cur_freq
+	sleep_and_exit
+elif [ "$HZ_OR_ECHO" =  "compile" ] || [ "$HZ_OR_ECHO" = "c" ]; then
+	governor_is_available
+	MINFREQ=600000
+	LOWERMAXFREQ=160000
+	echo_cpu conservative scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	restoreupthreshold
+	echo_cpu $MINFREQ scaling_min_freq #	echo $MINFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+	echo_cpu $LOWERMAXFREQ scaling_max_freq #	echo $LOWERMAXFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+	echo "No of CPUS: $CORESLIVE adjusted. Maximum frequency capped to $LOWERMAXFREQ MHz. Current Mhz:"
+	grep . /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_cur_freq
+	echo "CPU clock set to $FREQ. Let's see what the kernel thinks: `grep MHz /proc/cpuinfo`"
+	sleep_and_exit
+elif [ "$HZ_OR_ECHO" =  "battery" ] || [ "$HZ_OR_ECHO" = "b" ]; then
+	governor_is_available
+	MINFREQ=600000
+	LOWERMAXFREQ=1200000
+	echo_cpu powersave scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	#restoreupthreshold
+	echo_cpu $MINFREQ scaling_min_freq #	echo $MINFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+	echo_cpu $LOWERMAXFREQ scaling_max_freq #	echo $LOWERMAXFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+	echo "No of CPUS: $CORESLIVE adjusted. Maximum frequency capped to $LOWERMAXFREQ MHz. Current Mhz:"
+	grep . /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_cur_freq
+	sleep_and_exit
+else
+	echo "Maybe invalid character. Please retry."
+	sleep 2
+	$0
+fi

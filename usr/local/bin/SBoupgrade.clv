@@ -1,0 +1,54 @@
+#!/bin/bash
+# Script written by Michales Michaloudes (korgie@gmail.com) for the SlackBuild community.
+# Feel free to modify it, or to take the project to higher levels :)
+#
+# Use it at your own risk.
+
+# Variables
+SOURCES=${SOURCES:-../../sources} # the folder with the sources. I suggest to use relative path.
+TEMPLATEFOLDER=${TEMPLATEFOLDER:-~/SlackBuilds} # the folder with template.README template.SlackBuild template.info template.slack-desc
+
+if [ "$2" = "" ]; then
+	APPNAME=$(ls *.SlackBuild | gawk -F'.SlackBuild' ' { print $1 } ')
+	echo "You didn't provided program name, guessed: $APPNAME."
+else
+	APPNAME=$2
+fi
+. $APPNAME.info
+
+if [ "$1" = "" ]; then
+	NEWVERSION=$(ls -t1 $APPNAME*.tar* | head -1 | sed -e 's/.*-//' -e 's/.tar.*//g')
+	echo "You didn't provided version, guessed: $NEWVERSION"
+else
+	NEWVERSION=$1
+fi
+
+echo -e "\nUpdating with $APPNAME-$NEWVERSION."
+SOURCE=$(ls $APPNAME-$NEWVERSION.tar.* | sort | head -1)
+
+# Append the md5sum to the info file
+if [ -e $SOURCE ]; then
+	MD5SUMPRG=$(md5sum $SOURCE | cut -c 1-32)
+else
+	echo "ERROR, source absent?"
+	exit 1
+fi
+
+#-----------------------------
+#- SED bonanza               -
+#-----------------------------
+# All files like slack-desc, Slackbuild, info will have the correct application name to be compiled
+# find $TEMPLATEFOLDER/$NEWVERSION/$APPNAME -name $APPNAME.\* -exec sed -i "s/appname/$APPNAME/g" {} \;
+# APPURL=$(cat ${SOURCES}/${APPNAME}.link)
+
+sed -i "s/VERSION:-.*}/VERSION:-$NEWVERSION}/g" ./$APPNAME.SlackBuild
+sed -i "s/VERSION=\".*\"/VERSION=\"$NEWVERSION\"/g" ./$APPNAME.info
+sed -i "s/MD5SUM=\".*\"/MD5SUM=\"${MD5SUMPRG}\"/g" ./$APPNAME.info
+sed -i "s,$VERSION,$NEWVERSION,g" ./$APPNAME.info
+
+echo 
+echo "Check for yourself for errors."
+grep $APPNAME $APPNAME.info
+grep VERSION $APPNAME.SlackBuild
+
+# vi $APPNAME.info

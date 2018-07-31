@@ -1,0 +1,16 @@
+#!/bin/bash
+# Clavisound
+
+BINARY=$1
+
+for LIBRARY in `ldd $BINARY | sed -e '/ld-linux/d' -e 's+.*/usr/lib/++' -e 's/.so.*//' -e '/linux-gate/d'`
+do
+	echo -n "Seaching for $LIBRARY.so.. "
+	PACKAGE=`grep $LIBRARY.so /var/log/packages/* | sed -e 's+/var/log/packages/++' -e 's/:.*//' | uniq`
+	if [ "$PACKAGE" != "" ]; then
+		echo "$LIBRARY.so found in $PACKAGE" 
+		echo
+	else
+		echo "not found."
+	fi
+done

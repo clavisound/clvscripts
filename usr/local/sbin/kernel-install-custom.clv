@@ -1,0 +1,98 @@
+#!/bin/bash
+# TODO: Variables via file
+HIBERNATION=${HIBERNATION:-/dev/sda8}
+ROOTFS=${ROOTFS:-/dev/sda1}
+SOURCE=`pwd`
+unset ARCH
+#if [ "$ARCH" = i686 ]; then # for personal use
+#	ARCH=x86
+#fi
+#if [ ! -e $SOURCE/Module.symvers ]; then
+#	SOURCE=/usr/src/linux/
+#	echo "Module.symvers file is missing, changing to $SOURCE folder."
+#fi
+
+if [ ! -e $SOURCE/modules.order ]; then
+	# TODO: install only kernel
+	echo "Be aware, it seems that modules are not compiled!"
+	echo "Aborting."
+	ls -l $SOURCE/modules.order
+	exit
+fi
+MYRELEASE=`cat $SOURCE/include/config/kernel.release`
+#report version from .config
+LOCALVERSION=`grep LOCALVERSION $SOURCE/.config | head -1 | gawk -F"\"" ' { print $2 } '`
+if [ "$LOCALVERSION" == "" ]; then
+	echo ".config is missing, maybe something is bad. Aborting."
+	exit 1
+fi
+echo "local VERSION from .config is: $LOCALVERSION"
+
+cd $SOURCE
+SOURCESVERSION=$(make kernelrelease)
+cd -
+
+echo "sources version is: $SOURCESVERSION"
+
+echo "VERSION string to append to files? (ex. t2x_krg.mus, t2x_krg.server)"
+echo "Press enter to append the $MYRELEASE"
+read VERSION
+
+if [ "$VERSION" == "" ]; then
+	VERSION=$MYRELEASE
+fi
+echo "String to append is: $VERSION"
+
+function installmodules (){
+	cd $SOURCE
+	if [ -e /lib/modules/$MYRELEASE ]; then
+		echo "Abandoning. Folder /lib/modules/$MYRELEASE, exists!"
+		exit
+	fi
+	make modules_install
+}
+
+function installkernel (){
+	cd $SOURCE
+	cp -p .config /boot/config-$MYRELEASE
+	cp -p System.map /boot/System.map-$MYRELEASE
+	ln -sf /boot/System.map-$MYRELEASE /boot/System.map
+	grep -q CONFIG_64BIT=y $SOURCE/.config
+	if [ $? -eq 0 ]; then
+		cp -p arch/x86_64/boot/bzImage /boot/bzImage-$MYRELEASE
+	else
+		cp -p arch/i386/boot/bzImage /boot/bzImage-$MYRELEASE
+	fi
+}
+
+function installlilo (){
+	echo "Preparing /etc/lilo.conf"
+	echo >> /etc/lilo.conf
+	echo "# Linux bootable partition config begins" >> /etc/lilo.conf
+	echo "image = /boot/bzImage-$MYRELEASE" >> /etc/lilo.conf
+	echo "root = $ROOTFS" >> /etc/lilo.conf
+	echo "label = $MYRELEASE" >> /etc/lilo.conf
+	echo "append = \"resume=$HIBERNATION\""  >> /etc/lilo.conf
+	echo "# Linux bootable partition config ends" >> /etc/lilo.conf
+	vim /etc/lilo.conf
+	lilo
+}
+
+function targzkernel (){
+	tar rvf /root/kernel-$MYRELEASE.tar /boot/config-$MYRELEASE /boot/System.map-$MYRELEASE /boot/bzImage-$MYRELEASE /lib/modules/$MYRELEASE
+	gzip /root/kernel-$MYRELEASE.tar
+}
+
+if [ "$1" == "-t" ]; then
+	cd $SOURCE
+	installmodules
+	installkernel
+	targzkernel
+	else
+		installmodules
+		installkernel
+		installlilo
+fi
+
+echo "Syncing all disks."
+sync

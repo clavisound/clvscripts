@@ -1,0 +1,35 @@
+#!/bin/bash
+# Pass -r option to remove capabilities
+OPTION=$1
+SETCAPOPTION="cap_ipc_lock,cap_sys_nice=ep"
+BINARIES="wine jackd qjackctl hydrogen qtractor pianoteq3 pianoteq4 pianoteq5 qmmp fst.exe fst.exe.so qsynth fluidsynth jack_capture renoise"
+LIBRARIES="fsthost.exe.so"
+
+if [ "$OPTION" = "-r" ]; then
+	SETCAPOPTION="-r"
+	echo "Removing all capabilities"
+fi
+
+if [ "$OPTION" != "-r" ]; then
+	SETCAPOPTION="cap_ipc_lock,cap_sys_nice=ep"
+fi
+
+
+function dothejob() {
+for BIN in $2
+do
+	if [ -e $PATH/$BIN ]; then
+		/sbin/setcap $SETCAPOPTION $PATH/$BIN
+		echo -e "setcap $SETCAPOPTION $PATH/$BIN"
+	else
+		echo -e "Ignored: \t*$BIN*\t Absent from $PATH"
+	fi
+done
+}
+
+PATH=/usr/bin
+dothejob $PATH "$BINARIES"
+PATH=/usr/lib/wine
+dothejob $PATH "$LIBRARIES"
+
+echo "Pass -r option to remove capabilities from the above files."

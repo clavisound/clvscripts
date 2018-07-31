@@ -1,0 +1,48 @@
+#!/bin/bash
+# Michales Michaloudes (clavisound) Jul 2017
+# Use it at your own risk
+
+INPUT=$1
+
+if [ "$1" = "" ]; then
+	echo -e "\nUsage: $0 1234 (dec)"
+	echo "Usage: $0 b01001 (binary)"
+	echo "Usage: $0 0xFF (hex)"
+        echo "If number is written as b10001 it's considered binary."
+	echo "If it's written 0x43 it is considered as hexadecimal."
+	echo "Whithout prefix is just a decimal."
+	exit
+fi
+
+echo $INPUT | grep -q 0x
+if [ $? == 0 ]; then
+	echo -en "Hex to dec: "
+	DEC=$(printf "%d\n" $INPUT)
+	echo $DEC
+	echo -en "Hex to bin: "
+	BIN=$(echo "obase=2;$DEC" | bc)
+	echo -en "$BIN "
+	echo -en "Digits: "
+	echo -n $BIN | wc -c
+	exit
+fi
+
+echo $INPUT | grep -q -E ^b
+if [ $? == 0 ]; then
+	# delete preceding b
+	INPUT=$(echo $INPUT | tr -d b)
+	echo -n "Digits: "
+	echo -n $INPUT | wc -c
+	echo -en "Binary to dec: "
+	echo "ibase=2;obase=A;$INPUT" | bc
+	echo -en "Binary to hex: "
+	echo "ibase=2;obase=10000;$INPUT" | bc
+else
+	BIN=$(echo "ibase=10;obase=2;$INPUT" | bc)
+	echo -en "Dec to binary: $BIN"
+	echo -en " digits: "
+	echo -n $BIN | wc -c
+	echo -en "To Hex: "
+	echo "ibase=2;obase=10000;$BIN" | bc
+	exit
+fi

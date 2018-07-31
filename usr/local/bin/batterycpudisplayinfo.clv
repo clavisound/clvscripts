@@ -1,0 +1,33 @@
+#!/bin/bash
+# By Michales Michaloudes (clavisound). Use it for good cause and
+# Use it at your own risk
+if [ ! -r /sys/class/power_supply/BAT0/uevent ]; then
+	echo "Your kernel does not report battery statistics, or you don't have a laptop :)"
+	exit
+fi	
+
+echo_comma (){
+echo -n ','
+}
+
+LOADAVG=`cat /proc/loadavg | gawk -F ' ' '{ print $3 }'`
+CURDATE=`date +%Y-%m-%d,%H:%M.%S`
+echo -n $CURDATE
+echo_comma 
+
+echo -n $LOADAVG
+echo_comma
+
+for I in ENERGY_FULL= POWER_NOW SUPPLY_STATUS ENERGY_NOW
+do
+	IUEVENT=$(grep $I /sys/class/power_supply/BAT0/uevent)
+	IUEVENT_TRIM_ZEROS=$(echo $IUEVENT | sed -e 's/000,/,/g' -e 's/000$//g')
+	echo -n $IUEVENT_TRIM_ZEROS
+	echo_comma 
+done
+
+# monitor status
+DISPLAY=:0.0 echo $(xset q | grep Monitor)
+echo_comma 
+
+grep MHz /proc/cpuinfo | sed -e 's/.*\://' -e 's/\.000//' | cut -d, -f2- | paste -sd,

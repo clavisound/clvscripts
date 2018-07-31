@@ -1,0 +1,18 @@
+#!/bin/bash
+# Requires: alsa-plugin (jack-plugn), jack, 
+# Requires: a properly already configured .asoundrc file!
+grep -q slave.*pcm.\"primary\" ~/.asoundrc
+if [ $? -eq 0 ]; then
+	sed -i 's/"primary"/"jack"/' ~/.asoundrc
+	echo -e "switched to jack system\n"
+	`cat ~/.jackdrc` &
+	exit 0
+fi
+
+grep -q slave.*pcm.\"jack\" ~/.asoundrc
+if [ $? -eq 0 ]; then
+	sed -i 's/"jack"/"primary"/' ~/.asoundrc
+	echo -e "switched to alsa system\n"
+	killall jackd
+	exit 0
+fi

@@ -1,0 +1,42 @@
+#!/bin/bash
+# Requires ffmpeg
+
+TEMP=${TEMP:-/mnt/tempfs}
+# if TEMP folder is not exists, default to system wide /tmp
+if [ ! -e $TEMP ]; then
+	TEMP=/tmp
+fi
+FILE=$1
+
+if [ '$FILE' == '' ]; then
+	echo "Gime a flv file to work! ex. $0 file.flv 1200 (bitrate)"
+	exit
+fi
+
+if [ ! -r $FILE ]; then
+	echo "This file does not exists or you don't have permissions."
+	exit
+fi
+
+# grab only the filename
+FILE=`basename $1`
+
+# if the path is relative convert to absolute
+FIRSTCHAR=`echo $1 | cut -b 1`
+if [ $FIRSTCHAR != "/" ]; then
+       FOLDER=$PWD/`dirname $1`
+fi
+
+if [ $2 -lt 1400 ] && [ $2 -gt 360 ]; then
+	VIDRATE=$2K
+	echo "Bitrate changed to: $VIDRATE"
+else
+	VIDRATE="360K"
+	echo "Too low or too big bitrate, defaulting to $VIDRATE"
+fi
+
+PASSFILE="$TEMP/ffmpeg-$FILE"
+nice ffmpeg -i $FILE -b $VIDRATE -an -pass 1 -passlogfile $PASSFILE -y $FILE.avi
+nice ffmpeg -i $FILE -b $VIDRATE -vtag divx -acodec libmp3lame -ab 160k -pass 2 -passlogfile $PASSFILE -y $FILE.avi
+
+rm $PASSFILE-0.log

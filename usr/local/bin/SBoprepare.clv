@@ -1,0 +1,132 @@
+!/bin/bash
+# Script written by Michales Michaloudes (korgie@gmail.com) for the SlackBuild community.
+# Feel free to modify it, or to take the project to higher levels :)
+#
+# Use it at your own risk.
+# TODO: sed after last dash "-"
+# TODO: md5sum insert into .info file
+# TODO: insert $VERSION to the files.
+
+# Variables 
+
+# the folder with the sources. Relative to build folder. I suggest to use relative path.
+SOURCES=${SOURCES:-/docs/repo/src}
+TEMPLATEFOLDER=${TEMPLATEFOLDER:-~/SlackBuilds} # the folder with template.README template.SlackBuild template.info template.slack-desc
+GROUP=repo # according to SlackBuilds this is root
+CWD=`pwd`
+
+# check folders.. or abort
+if [ $SOURCES !-e ]; then
+	echo "$SOURCES is missing, aborting..."
+	exit 1
+fi
+
+if [ $TEMPLATEFOLDER\template.SlackBuild !-e ]; then
+	echo "Template files on $TEMPLATEFOLDER are missing, aborting..."
+	exit 1
+fi
+
+clear
+echo "This script will create two subfolders according to your"
+echo "input of category folder (example: net [network]) and application name"
+echo "(example: nload)."
+echo "The above example will create subfolders net/bmon"
+echo "sh prepare network bmon"
+echo
+
+echo "It will calculate the MD5SUM and changes some values with your input"
+echo "in the necessary SlackBuild files."
+echo "I assume that you source tarball is in current directory"
+echo "It's not fatal if missing, if exists it will move to"
+echo "the category folder you defined."
+echo
+
+if [ "$1" = "" ]; then
+	echo -n "Folder? "
+	read PRGFOLDER
+fi
+PRGFOLDER=$1
+
+if [ "$2" = "" ]; then
+	echo -n "AppSource? "
+	read APPSOURCE
+fi
+APPSOURCE=$2
+
+# clean the folder.
+APPSOURCE=`basename $APPSOURCE`
+VERSION=`echo $APPSOURCE | sed -e 's/.*-//' -e 's/.tar.*//g'`
+
+# PRGNAM = APPSOURCE.tar.gz without the noise (.tar.gz)
+# BUG: converts synce-kpm-0.15.tar.gz to synce instead of synce-kpm
+if [ "$3" == "" ]; then
+	PRGNAM=`echo $APPSOURCE | sed 's/-[0-9].*//g'`
+else
+	PRGNAM=$3
+fi
+
+# Prepare folder
+mkdir -p $TEMPLATEFOLDER/$PRGFOLDER/$PRGNAM
+
+# Copy SlackBuild files
+if [ -e $PRGFOLDER/$PRGNAM/$PRGNAM.SlackBuild ]; then
+	echo "ERROR! $PRGFOLDER/$PRGNAM/$PRGNAM.SlackBuild found! Aborting."
+	exit
+fi
+
+cp -p $TEMPLATEFOLDER/template.SlackBuild $PRGFOLDER/$PRGNAM/$PRGNAM.SlackBuild
+cp -p $TEMPLATEFOLDER/template.slack-desc $PRGFOLDER/$PRGNAM/slack-desc
+cp -p $TEMPLATEFOLDER/template.info $PRGFOLDER/$PRGNAM/$PRGNAM.info
+cp -p $TEMPLATEFOLDER/template.README $PRGFOLDER/$PRGNAM/README
+cp -p $TEMPLATEFOLDER/template.doinst.sh $PRGFOLDER/$PRGNAM/doinst.sh
+
+# Append the md5sum to the info file
+cd ${PRGFOLDER}/${PRGNAM}
+# if [ -e ${CWD}/${SOURCES}/$APPSOURCE ]; then
+if [ -e ${SOURCES}/$APPSOURCE ]; then
+	MD5SUMPRG=$(md5sum ${SOURCES}/$APPSOURCE | cut -c 1-32)
+else
+	echo "ERROR, source absent?"
+fi
+
+# Link the source to the subfolder
+if [ -e ${SOURCES}/${APPSOURCE} ]; then
+	ln -s ${SOURCES}/${APPSOURCE} $TEMPLATEFOLDER/$PRGFOLDER/$PRGNAM/ 
+else
+	echo -n "ERROR! Source not found in:" 
+	DEBUG=`pwd`
+	echo "$DEBUG/${SOURCES}/${APPSOURCE}"
+	exit 1
+fi
+
+# Change permissions
+chgrp $GROUP -R $TEMPLATEFOLDER/$PRGFOLDER/$PRGNAM/
+chmod 775 -R $TEMPLATEFOLDER/$PRGFOLDER/$PRGNAM/
+
+#-----------------------------
+#- SED bonanza               -
+#-----------------------------
+# All files like slack-desc, Slackbuild, info will have the correct application name to be compiled
+# find $TEMPLATEFOLDER/$PRGFOLDER/$PRGNAM -name $PRGNAM.\* -exec sed -i "s/appname/$PRGNAM/g" {} \;
+cd $TEMPLATEFOLDER/$PRGFOLDER/$PRGNAM 
+APPURL=$(cat ${SOURCES}/${APPSOURCE}.link)
+
+sed -i "s/appname/$PRGNAM/g" ./slack-desc ./$PRGNAM.*
+sed -i "s/VERSION:-1.4.1/VERSION:-$VERSION/g" ./$PRGNAM.SlackBuild
+sed -i "s/1.4.1/$VERSION/g" ./$PRGNAM.info
+sed -i "s/MD5SUM=\"\"/MD5SUM=\"${MD5SUMPRG}\"/g" ./$PRGNAM.info
+sed -i "s+DOWNLOAD=.*+DOWNLOAD=\"${APPURL}\"+g" ./$PRGNAM.info
+
+# in case of bz2 substitude tar -xzvf *.tar.gz -> tar -xjvf *.tar.bz2
+echo $APPSOURCE | grep -q bz2
+if [ $? -eq 0 ]; then
+	sed -i 's+tar xvf $CWD/$PRGNAM-$VERSION.tar.gz+tar xvf $CWD/$PRGNAM-$VERSION.tar.bz2+' $TEMPLATEFOLDER/$PRGFOLDER/$PRGNAM/$PRGNAM.SlackBuild
+fi
+echo $APPSOURCE | grep -q xz
+if [ $? -eq 0 ]; then
+	sed -i 's+tar xvf $CWD/$PRGNAM-$VERSION.tar.gz+tar xvf $CWD/$PRGNAM-$VERSION.tar.xz+' $TEMPLATEFOLDER/$PRGFOLDER/$PRGNAM/$PRGNAM.SlackBuild
+fi
+
+echo
+echo "Done! You need to modify the neccessary SlackBuild files.. Happy Slacking."
+echo "Cheers from Greece."

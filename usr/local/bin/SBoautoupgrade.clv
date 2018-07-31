@@ -1,0 +1,14 @@
+#!/bin/bash
+. /etc/sboclv.conf
+PKG=$1
+
+if [ "$PKG" = "" ]; then
+	echo "Error, give me a program name."
+	exit 1
+fi
+
+SBocp.clv $PKG # copy the SBo files (SlacbkBuild e.t.c.)
+# upgrade the package
+cd $LOCALSBO/$PKG
+upgradeSBo.clv
+sh $PKG.SlackBuild && tarSBo.clv SBo/local qmmp

@@ -1,0 +1,45 @@
+#!/bin/bash
+# Code stolen from 
+# https://gist.githubusercontent.com/ohadcn/f2e5c2436c67cd8180e2/raw/fd821040ab68a1d576131ddaca78827f5968b6a3/download_apk.sh
+
+if test $# -lt 1 ; then
+	echo "Usage: $0 DIR"
+	echo "OR: $0 DIR android-program"
+	exit 1
+fi
+
+function areweok(){
+        echo "Backup $APK_PATH? (y/n)"
+        read ANSWER
+        if [ "$ANSWER" = "y" ]; then
+		echo "Pulling $APK_PATH.apk from device..."
+		adb pull -a $APK_PATH $1
+		echo "Pulling user settings fro $APK_PATH."
+		adb backup $APK_PATH $APK_PATCH.ab
+	else
+		echo "NOT pulling $APK_PATH from device..."
+        fi
+}
+if [ "$2" == "-f" ]; then
+	for APK_PATH in $(adb shell pm list packages -f -3|sed 's/package://g'|sed s/=.*$//g) ; do
+		echo "Pulling $APK_PATH.apk from device..."
+		adb pull -a $APK_PATH $1
+		echo "Pulling user settings fro $APK_PATH."
+		adb backup $APK_PATH $APK_PATCH.ab
+	done
+fi
+
+if [ "$2" == "" ]; then
+	for APK_PATH in $(adb shell pm list packages -f -3|sed 's/package://g'|sed s/=.*$//g) ; do
+		areweok
+	done
+else
+	echo "FIX ME"
+	exit
+	adb shell pm list packages -f -3 | sed -e 's/package://g' \
+		-e 's/=.*$//g' > /tmp/android.apks
+	ANDPKG=$(grep $2 /tmp/android.apks)
+	echo $ANDPKG
+	adb pull -a $ANDPKG $1
+	adb backup $ANDPKG $ANDPKG.ab
+fi

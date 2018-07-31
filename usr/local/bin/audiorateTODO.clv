@@ -1,0 +1,16 @@
+#!/bin/bash
+
+ln -sf /dev/null null.mp3
+if [ $? =! 0 ]; then
+	echo "Something is bad"
+	exit
+fi
+
+for file in *.{flv,mp4}
+do
+	# write bitrate to a file, then grep
+	# TODO: Better approach with ffprobe?
+	ffmpeg -i "$file" -vn -an -y null.mp3 2>"$file".ffmpeg
+	AUDIOBITRATE=`grep Audio "$file".ffmpeg | gawk -F" " ' { print $9 } '`
+	echo "Bitrate for "$file" is: $AUDIOBITRATE kb/s"
+done

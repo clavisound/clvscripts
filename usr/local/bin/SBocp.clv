@@ -1,0 +1,49 @@
+#!/bin/bash
+PRGNAM=$1
+if [ "$PRGNAM" = "" ]; then
+	echo "Error, you need to specify a program name"
+	echo
+	echo "Options SBOCONF, \$3 is REPO_BRANCH"
+	echo "eg: SBOCONF=/etc/sbopkg.conf.sandisk8g jemalloc 14.1"
+	exit 1
+fi
+
+. /etc/sboclv.conf
+
+# LOCALSBO=${LOCALSBO:-~/SlackBuilds/SBo/local}
+# LOCALSOURCE=${LOCALSOURCE:-../../../sources}
+SBOCONF=${SBOCONF:-/etc/sbopkg/sbopkg.conf}
+RUN=$2
+
+source $SBOCONF
+
+if [ "$3" != "" ]; then
+	REPO_BRANCH=$3
+fi
+
+if [ ! -e $REPO_ROOT ]; then
+	echo "sbopkg files are missing from $REPO_ROOT".
+	exit 1
+fi
+
+cd $LOCALSBO
+
+
+echo find $REPO_ROOT/$REPO_NAME/$REPO_BRANCH -name $PRGNAM.tar.gz -maxdepth 2 -mindepth 2
+TARSBO=$(find $REPO_ROOT/$REPO_NAME/$REPO_BRANCH -name $PRGNAM.tar.gz -maxdepth 2 -mindepth 2)
+tar xzvf $TARSBO
+
+cd $PRGNAM
+source $PRGNAM.info
+# SRCname=$(echo $DOWNLOAD | sed -e 's/http.*\///g')
+# ln -s $LOCALSOURCE/$SRCname ./
+ln -s $LOCALSOURCE/$PRGNAM* ./
+
+if [ "$RUN" == -r ]; then
+#	sed -e 's/\"i486\"/\"pm\"/' -i $PRGNAM.SlackBuild
+	sed -e 's/-march=i486 -mtune=i686/-march=native -mtune=native/' -i $PRGNAM.SlackBuild
+#	sed -e '/--build=/d' -e '--host/d' -i $PRGNAM.SlackBuild
+	nice sh $PRGNAM.SlackBuild
+else
+	echo "The sbo exact copy is there: $LOCALSBO/$PRGNAM"
+fi

@@ -1,0 +1,101 @@
+#!/bin/bash
+# TODO: we have stalled file in / ! (root filesystem)
+
+BITS=$(uname -m)
+if [ "$BITS" == "x86_64" ]; then
+	SLACKBITS=64
+	BITS=64
+	ARCHF="x86_64"
+else
+	SLACKBITS=""
+	BITS=32
+	ARCHF=i386
+fi
+
+FOLDER=usr/lib$SLACKBITS/mozilla/plugins
+cd /$FOLDER
+
+WGETOPTIONS=${WGETOPTIONS:---limit-rate=100k}
+
+# Obsolete
+# FILE=http://fpdownload.macromedia.com/get/flashplayer/current/install_flash_player_10_linux.tar.gz
+# VERSION=${VERSION:-11.1.102.55}
+# Obsolete at Jul-2012
+# URLHTML="http://get.adobe.com/flashplayer/completion/?installer=Flash_Player_11_for_other_Linux_(.tar.gz)_32-bit"
+# Obsolete at Nov-2013
+# URLHTML="http://get.adobe.com/flashplayer/completion/?installer=Flash_Player_11.2_for_other_Linux_(.tar.gz)_32-bit"
+# Obsolete at Aug-2016
+# URLHTML="http://get.adobe.com/flashplayer/download/?installer=Flash_Player_11.2_for_other_Linux_%28.tar.gz%29_32-bit&standalone=1"
+# Obsolote at Nov-2016
+# URLHTML="https://get.adobe.com/flashplayer/download/?installer=FP_11.2_for_other_Linux_32-bit_(.tar.gz)_-_NPAPI&standalone=1"
+# URLHTML="https://get.adobe.com/flashplayer/download/?installer=FP_24.0_for_Linux_${BITS}-bit_(.tar.gz)_-_NPAPI&stype=5456&standalone=1"
+# URLHTML="https://get.adobe.com/flashplayer/download/?installer=FP_24.0_for_Linux_${BITS}-bit_(.tar.gz)_-_NPAPI&stype=$STYPE&standalone=1"
+# obsolete at Jun-17
+# URLHTML="https://get.adobe.com/flashplayer/download/?installer=FP_25.0_for_Linux_${BITS}-bit_(.tar.gz)_-_NPAPI&stype=$STYPE&standalone=1"
+
+# grab stype
+URLHTML="https://get.adobe.com/flashplayer/otherversions/"
+wget --user-agent="Mozilla/5.0 (X11; Linux i686; rv:38.0) Gecko/20100101 Firefox/44.0" https://get.adobe.com/flashplayer/ -O grepme.html
+# OLD
+# STYPE=$(grep .tar.gz.*sType grepme.html | gawk -F'"' ' { print $2 } ')
+STYPE=$(grep .tar.gz.*sType grepme.html | sed -e 's/.*sType=//' -e 's/\&.*//')
+# wget --user-agent="Mozilla/5.0 (X11; Linux i686; rv:38.0) Gecko/20100101 Firefox/44.0" https://get.adobe.com/flashplayer/ -O grepme.html
+FP=$(grep =FP.*.tar.gz grepme.html | sed -e 's/.*=FP_//' -e 's/_.*//')
+URLHTML="https://get.adobe.com/flashplayer/download/?installer=FP_${FP}_for_Linux_${BITS}-bit_(.tar.gz)_-_NPAPI&stype=$STYPE&standalone=1"
+# URLHTML="https://get.adobe.com/flashplayer/download/?installer=FP_25.0_for_Linux_${BITS}-bit_(.tar.gz)_-_NPAPI&stype=$STYPE&standalone=1"
+echo using: $URLHTML
+
+# grab VERSION
+wget "$URLHTML" -O ./grepme.html
+VERSION=$(grep location grepme.html | gawk -F'/' ' { print $7 } ')
+if [ "$VERSION" == "" ]; then
+	echo "Oops, something is bad, exiting."
+	echo "Try there: https://get.adobe.com/flashplayer/"
+	exit 1
+else
+	echo "--> Web version $VERSION <-- "
+fi
+
+# obsolete in Jan 2017
+# FILE=http://fpdownload.macromedia.com/get/flashplayer/pdc/$VERSION/install_flash_player_11_linux.$ARCHF.tar.gz
+
+FILE="https://fpdownload.adobe.com/get/flashplayer/pdc/$VERSION/flash_player_npapi_linux.$ARCHF.tar.gz"
+TEMP=${TEMP:-/mnt/tempfs/}
+if [ ! -e $TEMP ]; then
+	TEMP=/tmp
+fi
+
+# First check if the file is changed
+curl -I "$FILE" | grep ETag > ETag.new
+touch ETag.old
+echo -e ETag.new
+cat ETag.new
+echo -e ETag.old
+cat ETag.old
+cmp -s ETag.new ETag.old
+
+if [ $? -eq 1 ]; then
+	DATE=`curl -Is "$FILE" | grep Last-Modified`
+	# get the file
+	echo "We have new version! Downloading..."
+	wget $WGETOPTIONS "$FILE" -O "$DATE"tar.gz
+	rm latest_flash.tar.gz
+	ln -sf "$DATE"tar.gz latest_flash.tar.gz
+	rm -r $TEMP/flash
+	mkdir -p $TEMP/flash/$FOLDER
+	mkdir -p $TEMP/flash/usr/doc/flash-$VERSION/
+	cd $TEMP/flash
+	tar xzvf /$FOLDER/latest_flash.tar.gz
+	mv libflashplayer.so $TEMP/flash/$FOLDER
+	mv LGPL readme.txt usr/doc/flash-$VERSION
+
+	# if you have slackware, build a slackware version
+	if [ -e /etc/slackware-version ]; then
+		makepkg -l y -c n $OUTPUT/flash-$VERSION-$ARCHF-clv.txz
+	fi
+
+	mv /$FOLDER/ETag.new /$FOLDER/ETag.old
+else
+	echo "No update from adobe, nothing to do. If in doubt check http://get.adobe.com/flashplayer/"
+fi
+

@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# This script compares the filenames of two folders and moves the files.
+# Michales (clavisound) Michaloudes, April, 2015
+FOLDERTODELETE=`realpath $2`
+TEMPLATEFOLDER=`realpath $1`
+
+function folder_exists(){
+	if [ ! -e $CHECK ]; then
+		echo "Folder $CHECK does not exists."
+		exit 1
+	fi
+}
+
+if [ $# == 0 ]; then
+	echo "Usage: $0 TEMPLATEFOLDER FOLDERTODELETE"
+	exit 1
+fi
+
+# check if folder exists
+folder_exists $FOLDERTODELETE
+folder_exists $TEMPLATEFOLDER
+
+mkdir $FOLDERTODELETE.todelete
+
+for FILES in $FOLDERTODELETE/*
+do
+	ONLYFILE=`basename $FILES`
+	if [ ! -f $TEMPLATEFOLDER/$ONLYFILE ]; then
+		echo $FILES is missing from $TEMPLATEFOLDER
+		mv -v $FOLDERTODELETE/$ONLYFILE $FOLDERTODELETE.todelete/
+	fi
+done
+

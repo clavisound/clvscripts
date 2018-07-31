@@ -1,0 +1,32 @@
+#!/bin/bash
+# Requires ffmpeg
+
+FILE=$1
+BITRATE=$2
+
+if [ "$FILE" == '' ]; then
+	echo "Gime a flv file to work! ex. $0 file.flv"
+	exit
+fi
+
+if [ "$BITRATE" == '' ]; then
+	BITRATE=128
+fi
+
+if [ ! -r "$FILE" ]; then
+	echo "This file does not exists or you don't have permissions."
+	exit
+fi
+
+# grab only the filename, ignore the folder
+#FILE=`basename "$1"`
+
+# do this only if the path is relative
+# convert the relative path to absolute
+FIRSTCHAR=`echo "$1" | cut -b 1`
+#if [ $FIRSTCHAR != "/" ]; then
+if [ ! $FIRSTCHAR == "/" ]; then
+       FOLDER=$PWD/`dirname "$1"`
+fi
+
+ffmpeg -i "$FILE" -vn -acodec libmp3lame -ab ${BITRATE}k -y "$FILE".mp3

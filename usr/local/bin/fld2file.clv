@@ -1,0 +1,50 @@
+#!/bin/bash
+# This script renames foldername to filename
+# TODO: not only jpg
+# TODO: handle whitespaces (xargs? ) no: insert " (double quotes)
+# TODO: name by force: ex $0 ./summer_2010 mysummer
+
+FOLDER=$(echo $1 | sed -f /etc/escapechars.sed)
+OPTION=$2
+
+if [ "$1" == "" ] || [ "$1" == "./" ]; then
+	echo "Start script with $0 followed by the foldername."
+	echo "ex.: $0 ./"
+	echo
+	echo "Give second parameter -l for for linking."
+	exit 1
+fi
+
+# do this only if the path is relative
+FIRSTCHAR=`echo $FOLDER | cut -b 1`
+if [ $FIRSTCHAR != "/" ]; then
+	FOLDER=$PWD/$1
+	# TODO: $0 ./testfile gives /foldername/./testfile
+fi
+
+# go back: one folder 'behind'
+# We need this for relative linking
+cd `dirname $FOLDER` || exit 1
+
+# grab the name of the folder only
+PREFIXNAME=`basename $FOLDER`
+
+function mv_or_ln (){
+	if [ "$OPTION" = "-l" ]; then
+		ln -sv $RELATIVEFILE $PREFIXNAME\_\_`basename $FILE`
+	else
+		mv -v "$FILE" "$PREFIXNAME"\_\_"$FILENAME"
+	fi
+}
+
+# link the files + add to name the foldername
+for FILE in "$FOLDER"/*
+do
+	echo "FILE: $FILE"
+	if [ -e "$FILE" ]; then
+		# TODO: remove folder.
+		FILENAME=$(basename $FILE)
+		RELATIVEFILE=$(echo $FILE | sed -e 's+/.*\./+./+')
+		mv_or_ln
+	fi
+done

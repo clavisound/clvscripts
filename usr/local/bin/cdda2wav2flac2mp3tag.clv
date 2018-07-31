@@ -1,0 +1,30 @@
+#!/bin/bash
+CDDEV=${CDDEV:-/dev/cdrom}
+LAME=${LAME:-yes}
+
+function lamewithtag (){
+	TITLE=`grep Tracktitle $INF | gawk -F "'" ' { print $2 } '`
+	ALBUM=`grep Albumtitle $INF | gawk -F "'" ' { print $2 } '`
+	NUMBER=`grep Tracknumber $INF | gawk -F " " ' { print $2 } '`
+	nice lame -V 3 --vbr-new --add-id3v2 --tt "$TITLE" --tn "$NUMBER" --ta "$ALBUM" $WAV
+}
+
+function flacme (){
+	# UNCHECKED
+	TITLE=`grep Tracktitle $INF | gawk -F "'" ' { print $2 } '`
+	ALBUM=`grep Albumtitle $INF | gawk -F "'" ' { print $2 } '`
+	NUMBER=`grep Tracknumber $INF | gawk -F " " ' { print $2 } '`
+	# UNCHECKED
+	nice flac --tag=TITLE=$TITLE --tag=ALBUM=$ALBUM --tag=NUMBER=$NUMBER -f $WAV
+}
+
+cdda2wav dev=$CDDEV -B -paranoia
+
+for INF in audio_*.inf
+do
+	WAV=`echo $INF | sed -e 's/.inf/.wav/g'`
+	if [ "$LAME" == 'yes' ]; then
+		lamewithtag
+	fi
+	flacme
+done

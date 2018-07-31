@@ -1,0 +1,271 @@
+#!/bin/bash
+
+# Requires: ImageMagick convert, bc, exiv2, gawk
+
+# Written by M. Michaloudes (clavisound) Feb-2015
+# http://clavisound.no-ip.info/minisites/bash-scripts/
+
+PIXELS=$1
+IMAGEMAGICKOPTIONS=${IMAGEMAGICKOPTIONS:-}
+FILES=$2
+FORCEASPECT=$3
+#TAGROTATE="rotated270"
+
+if [ "$IMAGEMAGICKOPTIONS" = 'NOMAGICK' ]; then
+	IMAGEMAGICKOPTIONS=''
+fi
+
+if [ "$1" = '' ];then
+	echo "Usage $0: pixels (ex. 1920) files aspect(ex. 16x9, 960 15x10 [iphone 4s], 800 5x3 [nexus-s], or even full resolution like 960x640 [iphone 4s])."
+	echo "Start option: IMAGEMAGICKOPTIONS=\"-auto-level -contrast-stretch 1\" $0 1920 ./ 16x9"
+	exit
+fi
+
+function options (){
+	while [ -n "$1" ]; do
+		case "$1" in
+		-p ) PIXELS=$1
+		shift 1
+		;;
+		esac
+	done
+}
+
+if [ "$PIXELS" = '-h' ]; then
+	echo "usage $0 1600 FILE 16x9"
+	exit
+fi
+
+if [ "$PIXELS" = '' ]; then
+	PIXELS=1440
+	echo "You didn't provided pixel numbers. Using $PIXELS px width"
+fi
+
+if [ $PIXELS -lt 32 ] || [ $PIXELS -gt 2536 ]; then
+	echo "Accepted sizes are between 32 and 2536 pixels width. You typed: $PIXELS."
+	exit 1
+fi
+
+echo $PIXELS | grep [A-z]
+if [ $? == 0 ]; then
+	echo "Type pixels not filename here. Example: $0 1600 file.JPG 16x9 or FORCEASPECT=16x9 $0 e.t.c."
+	exit 1
+fi
+
+mkdir -p $PIXELS\_$FORCEASPECT
+mkdir -p $PIXELS\_$TAGROTATE\_$FORCEASPECT
+
+function aspect (){
+	XPIXELS=$(exiv2 "$FILE" 2>/dev/null | grep 'Image size' | gawk -F' ' ' { print $4 } ')
+	YPIXELS=$(exiv2 "$FILE" 2>/dev/null | grep 'Image size' | gawk -F' ' ' { print $6 } ')
+	ASPECT=$(echo "$XPIXELS / $YPIXELS * 10" | bc -l | gawk -F'.' ' { print $1 } ') # get rid of float. (1.3333 is 13.3333)
+	ORIGASPECT=$(echo $XPIXELS / $YPIXELS | bc -l)
+	if [ $ASPECT -lt 10 ] || [ "$ASPECT" == '\l' ] ; then
+		PORTRAIT=1
+#		ROTATE="-rotate 270"
+#		TAGROTATE="rotated270"
+		PIXELS_RESIZE=$(echo "$PIXELS / 1.333333" | bc -l | gawk -F'.' '{ print $1 }') # 1.  Resize with 4:3 aspect [1.3333] 2. round with gawk 
+		echo "Portrait found. Rotating."
+	else	
+		ROTATE=""
+		TAGROTATE=""
+		PIXELS_RESIZE=$PIXELS
+		portrait # check for folder name.. if camera is not setting portrait mode and the user requested it.
+	fi
+}
+
+function portrait (){
+	realpath "$FILE" | grep portrait
+	if [ $? == 0 ]; then # path contains portrait
+		ROTATE="-rotate 270"
+		echo "Rotating... Picture is on folder portrait or named portrait."
+		PIXELS_RESIZE=$(echo "$PIXELS / 1.333333" | bc -l | gawk -F'.' '{ print $1 }') # 1.  Resize with 4:3 aspect [1.3333] 2. round with gawk 
+	fi
+}
+
+function restoredate (){
+	#datefromfiletofile.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+	datefromexiv2.clv $PIXELS\_$FORCEASPECT/"$FILE"
+}
+
+function checkforedit (){
+	# If file is edited, move original file to archive
+	FILENAMEONLY=$(basename "$FILE")
+	echo "$FILENAMEONLY" | grep -q -E _wb\|_crop # filename contains _wb, manual_wb, _cropped
+	if [ $? = 0 ]; then
+		echo -n "Found edited file, original is here?... "
+		JPGNUMBER=$(echo $FILENAMEONLY | sed -e 's/_wb.*//' -e 's/_crop.*//' -e 's/_manual.*//')
+		mkdir -p archive
+		# TODO, grub file extension
+		if [ -e "$JPGNUMBER".JPG ] || [ -e "$JPGNUMBER".jpg ]; then
+			mv -v $JPGNUMBER.{jpg,JPG} archive/
+		else
+			echo -ne "No :)\n"
+		fi
+	fi
+}
+
+function folderfiles (){
+	aspect
+	#portrait # better aproach with aspect
+	#convert $IMAGEMAGICKOPTIONS -resize ${PIXELS_RESIZE}x ${ROTATE} $FILE $PIXELS\_$TAGROTATE\_$FORCEASPECT/$FILE
+	convert $IMAGEMAGICKOPTIONS -resize ${PIXELS_RESIZE}x ${ROTATE} "$FILE" $PIXELS\_$TAGROTATE/"$FILE"
+	echo "convert $IMAGEMAGICKOPTIONS -resize ${PIXELS_RESIZE}x"
+	echo "file $FILE converted to $PIXELS_RESIZE pixels"
+	restoredate
+	checkforedit
+}
+
+function getXYpixels_and_aspect_with_exiv2 (){
+		# calculate cropping
+		exiv2 -p a "$FILE" | grep rient | grep 'left, bottom\|right, top' # iPhone-4S, portrait mode
+
+		# we have iOS portrait mode?
+		if [ $? = 0 ]; then
+			ASPECT=iOSportrait
+			XPIXELS=$(exiv2 "$FILE" 2>/dev/null | grep 'Image size' | gawk -F' ' ' { print $6 } ')
+			YPIXELS=$(exiv2 "$FILE" 2>/dev/null | grep 'Image size' | gawk -F' ' ' { print $4 } ')
+			ORIGASPECT=$(echo $XPIXELS / $YPIXELS | bc -l)
+		# No. Calculate aspect
+		else
+			XPIXELS=$(exiv2 "$FILE" 2>/dev/null | grep 'Image size' | gawk -F' ' ' { print $4 } ')
+			YPIXELS=$(exiv2 "$FILE" 2>/dev/null | grep 'Image size' | gawk -F' ' ' { print $6 } ')
+			ASPECT=$(echo $XPIXELS / $YPIXELS \* 10 | bc -l | gawk -F'.' ' { print $1 } ') # get rid of float. (1.3333 is 13.3333)
+			ORIGASPECT=$(echo $XPIXELS / $YPIXELS | bc -l)
+		fi
+}
+
+function croptoaspect (){
+	# TODO: MOVE THIS PROPER CODE FOR *ALL* aspects!
+	# we have forced aspect?
+	if [ "$FORCEASPECT" != "" ]; then # Yes
+		LONGPIXELS=$(echo $FORCEASPECT | gawk -F'x' ' { print $1 }')
+		SHORTPIXELS=$(echo $FORCEASPECT | gawk -F'x' ' { print $2 }')
+		FORCEDASPECT=$(echo $LONGPIXELS / $SHORTPIXELS \* 10 | bc -l | gawk -F'.' ' { print $1 }' )
+
+		getXYpixels_and_aspect_with_exiv2
+
+		# we have portrait?
+		if [ $ASPECT -lt 10 ] || [ "$ASPECT" == '\l' ] || [ "$ASPECT" == "iOSportrait" ]; then
+			PORTRAIT=1
+
+			# calculate the new size
+			YPIXELSWIDE=$(echo "$XPIXELS * $SHORTPIXELS / $LONGPIXELS" | bc -l | gawk -F'.' ' { print $1 } ')
+			# create image with crop at top
+			PIXELSOFFSET=$(echo "$YPIXELS / 6" | bc -l | gawk -F'.' ' { print $1 }') # Ok for upper
+
+			# we have iOSportrait
+			if [ "$ASPECT" == "iOSportrait" ]; then
+				YPIXELSNEW=$(echo "$SHORTPIXELS * $PIXELS / $LONGPIXELS" | bc -l | gawk -F'.' ' { print $1 } ')
+				echo "ASPECT: $ASPECT \
+				       	convert $IMAGEMAGICKOPTIONS -crop ${YPIXELSWIDE}x${XPIXELS}+${PIXELSOFFSET}+0 \
+					-resize ${YPIXELSNEW}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE".up.JPG"
+				convert $IMAGEMAGICKOPTIONS -crop ${YPIXELSWIDE}x${XPIXELS}+${PIXELSOFFSET}+0 \
+					-resize ${YPIXELSNEW}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE".up.JPG # Some weird BUG here? I use YPIXELS for XPIXELS
+				#datefromfiletofile.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE".up.JPG
+				datefromexiv2.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE".up.JPG
+				# create image with crop in middle
+				PIXELSOFFSET=$(echo "$YPIXELS / 3" | bc -l | gawk -F'.' ' { print $1 }') # OK for middle
+				#portrait # better aproach with aspect
+				echo "ASPECT: $ASPECT \
+					convert $IMAGEMAGICKOPTIONS -crop ${YPIXELSWIDE}x${XPIXELS}+${PIXELSOFFSET}+0 \
+					-resize ${YPIXELSNEW}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE""
+				convert $IMAGEMAGICKOPTIONS -crop ${YPIXELSWIDE}x${XPIXELS}+${PIXELSOFFSET}+0 \
+					-resize ${YPIXELSNEW}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				datefromfiletofile.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				echo "file "$FILE" converted to $PIXELS_RESIZE pixels"
+
+			# we have calculated portrait
+			else
+				echo "ASPECT: $ASPECT \
+					convert $IMAGEMAGICKOPTIONS -crop ${XPIXELS}x${YPIXELSWIDE}+0+${PIXELSOFFSET} \
+				       	-resize ${PIXELS}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE".up.JPG"
+				convert $IMAGEMAGICKOPTIONS -crop ${XPIXELS}x${YPIXELSWIDE}+0+${PIXELSOFFSET} \
+					-resize ${PIXELS}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE".up.JPG
+#				datefromfiletofile.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE".up.JPG
+				datefromexiv2.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE".up.JPG
+				# create image with crop in middle
+				PIXELSOFFSET=$(echo "$YPIXELS / 3" | bc -l | gawk -F'.' ' { print $1 }') # OK for middle
+				#portrait # better aproach with aspect
+				echo "ASPECT: $ASPECT \
+					convert $IMAGEMAGICKOPTIONS -crop ${XPIXELS}x${YPIXELSWIDE}+0+${PIXELSOFFSET} \
+					-resize ${PIXELS}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE""
+				convert $IMAGEMAGICKOPTIONS -crop ${XPIXELS}x${YPIXELSWIDE}+0+${PIXELSOFFSET} \
+					-resize ${PIXELS}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				#datefromfiletofile.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				datefromexiv2.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				echo "file $FILE converted to $PIXELS_RESIZE pixels"
+			fi
+
+		# we don't have portrait
+		else
+			# user aspect values
+			LONGPIXELS=$(echo $FORCEASPECT | gawk -F'x' ' { print $1 }')
+			SHORTPIXELS=$(echo $FORCEASPECT | gawk -F'x' ' { print $2 }')
+			FORCEDASPECT=$(echo "$LONGPIXELS / $SHORTPIXELS" | bc -l)
+			getXYpixels_and_aspect_with_exiv2
+
+			ROTATE=""
+
+			# calculate crop at edges.
+			# TODO: from 1.777 (16x9) aspect to 1.3333 (4x3) crop sides.
+			PHOTOASPECT=$(echo "$XPIXELS / $YPIXELS" | bc -l)
+			DIFFASPECT=$(echo "($PHOTOASPECT - $FORCEDASPECT) * 1000" | bc -l | gawk -F'.' ' { print $1}' )
+			if [ $DIFFASPECT -gt 1 ]; then # cut the sides, aspect is decreasing
+				# new aspect has smaller ratio: crop sides!
+
+				# BUG: Allmost there with 4:3. I added 1.039 to saved it. Problem with 1280 and 5x4
+				PIXELSOFFSET=$(echo "($YPIXELS - (($SHORTPIXELS / $LONGPIXELS) * $XPIXELS) * 1.038)" | bc -l | sed -e 's/\..*//' )
+
+				# calculate the new virtual size for cropping
+					# BUG: Works only with 1024 not with 2048
+					#YPIXELSWIDE=$(echo "$PIXELS * $SHORTPIXELS / $LONGPIXELS" | bc -l | gawk -F'.' ' { print $1 } ')
+					#PIXELRESIZE=$(echo "$YPIXELSWIDE - $YPIXELS" | bc -l | sed 's/-//' )
+					#PIXELDIFF=$(echo "$YPIXELSWIDE - $PIXELRESIZE" | bc -l )
+					#PIXELSOFFSET=$(echo "$PIXELDIFF * ($LONGPIXELS / $SHORTPIXELS)" | bc -l | gawk -F'.' ' { print $1 } ')
+				echo "convert $IMAGEMAGICKOPTIONS -crop ${XPIXELS}x${YPIXELS}+${PIXELSOFFSET}+0"
+				convert $IMAGEMAGICKOPTIONS -gravity center -crop ${XPIXELS}x${YPIXELS}+${PIXELSOFFSET}+0 \
+					-resize ${PIXELS}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				#datefromfiletofile.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				datefromexiv2.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+			else
+				# calculate the new virtual size for cropping
+				YPIXELSWIDE=$(echo "($XPIXELS * $SHORTPIXELS) / $LONGPIXELS" | bc -l | gawk -F'.' ' { print $1 } ')
+				# from 1.333 (4x3) aspect to 1.777 (aspect) crop top and bottom: DONE.
+				PIXELSOFFSET=$(echo "$YPIXELSWIDE - $YPIXELS" | bc -l | sed 's/-//' )
+			#	DEBUG:
+				# echo "$XPIXELS * $YPIXELS, $SHORTPIXELS / $LONGPIXELS newY: $YPIXELSWIDE $ASPECT / $FORCEDASPECT offset: $PIXELSOFFSET, PHOTOASPECT: $PHOTOASPECT"
+				# do the job
+					echo "convert $IMAGEMAGICKOPTIONS -crop ${XPIXELS}x${YPIXELS}+0+${PIXELSOFFSET} \
+				       	-resize ${PIXELS}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE""
+				convert $IMAGEMAGICKOPTIONS -crop ${XPIXELS}x${YPIXELS}+0+${PIXELSOFFSET} \
+					-resize ${PIXELS}x ${ROTATE} "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				#datefromfiletofile.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+				datefromexiv2.clv "$FILE" $PIXELS\_$FORCEASPECT/"$FILE"
+			fi
+		fi
+		restoredate
+	else
+		# we don't have forced aspect
+		# TODO calc aspect *and* use above commands
+		folderfiles
+	fi
+}
+
+if [ "$FILES" == './' ]; then
+	for FILE in ./*.{JPG,jpg}
+	do
+		if [ -e "$FILE" ]; then # otherwise it creates empty "*.jpg" file
+			croptoaspect $PIXELS
+		fi
+	done
+else
+	for FILE in "$FILES"
+	do
+		croptoaspect $PIXELS
+	done
+
+fi
+
+# remove empty directory
+rm -d $PIXELS\_$TAGROTATE\_$FORCEASPECT

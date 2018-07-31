@@ -1,0 +1,97 @@
+#!/bin/bash
+SUSPENDMEDIA=$1
+#SUSPENDMEDIA=${SUSPENDMEDIA:-disk}
+if [ "$SUSPENDMEDIA" != "disk" ] && [ "$SUSPENDMEDIA" != "mem" ]; then
+	MESSAGE="$0 is started with wrong arguments. Aborting."
+	echo $MESSAGE
+	xmessage $MESSAGE
+	exit
+fi
+
+#/sbin/modprobe -r pvrusb2
+
+PIDWM=`/sbin/pidof wminput`
+if [ "$PIDWM" != "" ] && [ $PIDWM -gt 0 ]; then
+	#todo
+	rm -f /tmp/after_hibernate
+	echo "wminput is running" 
+	/etc/rc.d/rc.cwiid stop
+else
+	echo "wminput is not running"
+fi
+
+if [ -x /etc/rc.d/rc.bluetooth ]; then
+	killall odccm
+	killall obexftpd
+	/etc/rc.d/rc.bluetooth stop
+fi
+
+sync
+
+killall -u sandisk8g # otherwise /media/sandisk8g cannot unmount (blame kde_kio_slave)
+killall gam_server
+killall chrome
+killall chromium
+killall adb
+
+for MOUNTS in 270G 30g gmx freecom 100g kitrino blue 32G_SD sandisk8g apacer8g wd1 tms 1tbalu
+# for MOUNTS in 270G 30g gmx freecom 100g kitrino blue sandisk8g apacer8g wd1 tms 1tbalu
+do
+	echo "unmounting... $MOUNTS"
+	umount /{mnt,media}/$MOUNTS
+	echo "umount /{mnt,media}/$MOUNTS"
+	grep -q $MOUNTS /proc/mounts
+	if [ $? -eq 0 ]; then # device mounted abort!
+		echo "Device $MOUNTS still mounted, aborting!"
+		xmessage "Unmount $MOUNTS!"
+		exit 1
+	fi
+done
+
+/usr/sbin/alsactl store
+killall artsd
+killall xine
+killall knotify4
+sync
+
+# BUG, does not work
+# xlock -mode blank &
+# xscreensaver-command -lock &
+
+echo $SUSPENDMEDIA > /sys/power/state
+
+killall artsd
+killall wpa_supplicant
+
+if [ -x /etc/rc.d/rc.cwiid ]; then
+	/etc/rc.d/rc.cwiid restart
+fi
+
+if [ -x /proc/net/wireless ]; then
+	/etc/rc.d/rc.inet1 restart
+fi
+
+# /usr/sbin/alsactl restore -f /etc/asound.state.x61
+/usr/sbin/alsactl restore
+
+#/sbin/modprobe pvrusb2
+
+`cat /tmp/after_hibernate`
+rm -f /tmp/after_hibernate
+
+if [ -x /etc/rc.d/rc.krg ]; then
+	/etc/rc.d/rc.krg 
+fi
+
+# disable 3G
+echo "disabling 3g"
+echo disabled > /proc/acpi/ibm/wan
+
+#/usr/sbin/ip.clv wpathomson
+sleep 1
+# /sbin/iwconfig wlan0 essid clavisound2.gr ap 00:26:44:79:FB:3C
+# /sbin/iwconfig wlan0 essid clavisound.gr ap 00:1E:74:B0:7F:F8
+# /etc/rc.d/rc.inet1 restart
+
+# disable wwan
+echo disable > /proc/acpi/ibm/wan

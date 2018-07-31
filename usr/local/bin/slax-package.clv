@@ -1,0 +1,25 @@
+#!/bin/bash
+
+debug ()
+{
+	echo $NAME, $VERSION
+	exit
+}
+
+for PACKAGE in *.t?z
+	do
+		NAMEANDVERSION=$(echo $PACKAGE | gawk -F"-i" ' { print $1 } ')
+		# TODO: trim version
+		#NAME=$(echo $NAMEANDVERSION | sed 's/-[0-9]*//' )
+		
+		#VERSION=$(echo $NAMEANDVERSION | gawk -F"-i" ' { print $1 } ' | gawk -F"-" ' { print $NF } ')
+		# debug; exit
+		mkdir $NAMEANDVERSION
+		cd $NAMEANDVERSION
+		tar xvf ../$PACKAGE
+		rm -r install
+		# mksquashfs ./ ../$NAME-$VERSION-clv.sb
+		mksquashfs ./ ../$NAMEANDVERSION-clv.sb
+		cd ..
+		rm -r ./$NAMEANDVERSION
+	done

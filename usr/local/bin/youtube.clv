@@ -1,0 +1,43 @@
+#!/bin/bash
+# Requires latest youtube-dl, ffmpeg
+
+# The nullglob option causes the array to be empty if there are no matched
+#shopt -s nullglob
+
+SPEED="-r 200k"
+LINK=$(echo $1 | sed 's/.*v=//')
+
+function audio_and_video ()
+{
+	FILES=(*$LINK*)
+	VIDEO=$(echo ${FILES[0]} | sed -f /etc/escapechars.sed ) 
+	AUDIO=$(echo ${FILES[1]} | sed -f /etc/escapechars.sed )
+	if [ "$AUDIO" == "$VIDEO" ]; then
+		echo "AUDIO file is same with VIDEO file. ABORTING."
+		echo -e $AUDIO --- vs --- $VIDEO
+		exit 1
+	fi
+}
+
+
+youtube-dl -f 135 $SPEED -k $1
+youtube-dl -f 171 $SPEED -k $1
+
+function audio_and_video_old ()
+{
+AUDIO=$(find ./ -name \*$LINK\*.webm | sed -f /etc/escapechars.sed)
+if [ "$AUDIO" == "" ]; then # sometimes the audiofile is m4a
+	AUDIO=$(find ./ -name \*$LINK\*.m4a | sed -f /etc/escapechars.sed)
+fi
+
+VIDEO=$(find ./ -name \*$LINK\*.f\*mp4 | sed -f /etc/escapechars.sed)
+}
+
+audio_and_video
+
+FILE=$(find ./ -name \*$LINK\* | sed -e 's/\.f...*\.mp4//g' | sed -f /etc/escapechars.sed | head -1)
+
+ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -vcodec copy \
+	-y "$FILE".merged.mp4
+echo ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -vcodec copy \
+	-y "$FILE".merged.mp4

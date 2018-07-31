@@ -1,0 +1,14 @@
+#!/bin/bash
+RESO="$1"
+CURSCREEN=$(xrandr -q | grep .*\ connected | sed -e 's/\ .*.//')
+
+if [ "$RESO" == "" ]; then
+	echo "Usage: $0 1440x768 (or other numbers)"
+	echo "Not resolution given, resetting to default resolution."
+	RESO=$(xrandr -q | grep \* | gawk -F" " ' { print $1 }')
+	echo "xrandr --output $CURSCREEN --panning $RESO"
+	xrandr --output $CURSCREEN --panning $RESO
+else
+	xrandr --output $CURSCREEN --panning $RESO
+fi
+

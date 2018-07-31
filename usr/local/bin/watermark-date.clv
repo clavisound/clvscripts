@@ -1,0 +1,27 @@
+#!/bin/bash
+# requirements exiv2, sed, grep, ImageMagick
+FILE=$1
+COLOR=${COLOR:-black}
+# TODO FONTSIZE propotional to Image size
+FONTSIZE=${FONTSIZE:-36}
+FOLDER=watermark
+
+TIMESTAMP=$(exiv2 -q pr $FILE | grep timestamp | sed -e 's/.* : //g')
+DATE=$(echo $TIMESTAMP | sed -e s'/:/-/g' -e 's/ .*//g')
+TIME=$(echo $TIMESTAMP | sed -e 's/^.* //g')
+
+# example: date -d '2014-01-10 1205:43:32'
+STRINGTIME=$(date -d "$DATE $TIME")
+
+mkdir -p $FOLDER
+
+# convert example
+# http://www.imagemagick.org/Usage/annotating/#watermarking
+# -font Arial -pointsize 20 -draw "gravity south fill black text 0,12 '`date`'"
+convert $FILE -font Arial -pointsize $FONTSIZE \
+       	-draw "gravity south fill black text 0,12 '$STRINGTIME' " \
+	$FOLDER/$FILE
+
+if [ $? == 0 ]; then
+	echo $FILE watermarked.
+fi

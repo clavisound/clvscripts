@@ -1,0 +1,102 @@
+#!/bin/bash
+#Lame scripting by Michales Michaloudes <korgie@gmail.com>
+# TODO, more flexible tar with find and xargs
+
+#cheking if root, since I will change group and owner to root.
+if [ "`id -u`" = "0" ]; then
+  echo "Good, you are root"
+else 
+  echo "Run the script as root"
+  exit 
+fi
+
+TMP=${TMP:-/mnt/tempfs}
+
+
+clear
+echo "This simple script, creates a gzipped tarball for submission"
+echo "to SlackBuild.org"
+echo
+
+SLACKBUILDS=${SLACKBUILDS:-~/SlackBuilds/}
+if [ "$1" = "" ]; then
+	echo -n "Do you want to present you the *.SlackBuilds? (y/n)"
+	read fnd_slbuild
+	find ./ -name \*.SlackBuild -mindepth 2 -maxdepth 3
+
+	echo -n "Folder? (category)"
+	read PRGCATECORY
+	else
+	PRGCATECORY=$1
+fi
+
+if [ "$2" = "" ]; then
+	echo -n "appname? "
+	read PRGNAM
+	else
+	PRGNAM=$2
+fi
+
+# TODO copy all files here to edit and create tar
+mkdir -p $TMP/SBo/submit/$PRGNAM
+
+SLACKBUILDFILES="$PRGNAM.SlackBuild \
+$PRGNAM.info \
+README \
+slack-desc \
+doinst.sh \
+*.conf.new \
+*.diff* \
+*.desktop \
+*.html \
+*.patch* \
+*.patch"
+# *.xpm \ # BUG xpm
+
+PATHSLACKBUILD="$SLACKBUILDS/$PRGCATECORY/$PRGNAM/"
+
+cd $SLACKBUILDS/$PRGCATECORY
+
+for EACHFILE in $SLACKBUILDFILES; do
+	if [ -e $PATHSLACKBUILD/${EACHFILE} ]; then # BUG xpm:  breaks for many files (ex. *.xpm)
+		# changing ownership to root
+		chown root.root $PRGNAM/${EACHFILE}
+		# CHECK
+		if [ $EACHFILE == $PRGNAM.SlackBuild ]; then
+		# TODO, delete #DELETEME lines
+			chmod 0755 $PRGNAM/$EACHFILE
+		else
+			chmod 0644 $PRGNAM/$EACHFILE
+		fi
+		# make the tar
+		echo
+		echo "Adding file to $PRGNAM.tar.gz:"
+		tar rvf $SLACKBUILDS/$PRGNAM.tar $PRGNAM/$EACHFILE
+		# restore permissions to repo group
+		chown root.repo $PRGNAM/$EACHFILE
+		chmod 774 $PRGNAM/$EACHFILE
+	# I whish I can remove non-existent files for my listing.
+	# TODO:	SLACKBUILDFILESFINAL="$EACHFILE:$EACHFILE"
+	fi
+done
+
+# hack for BUG xpm
+chmod 0644 $PRGNAM/*.xpm
+chown root.root $PRGNAM/*.xpm
+tar rvf $SLACKBUILDS/$PRGNAM.tar $PRGNAM/*.xpm
+chown root.repo $PRGNAM/*.xpm
+chmod 774 $PRGNAM/*.xpm
+
+# gzip the tar
+gzip $SLACKBUILDS/$PRGNAM.tar 
+
+echo
+echo "Package should be ready for Submission to"
+echo "http://www.slackbuilds.org/"
+
+# move the slackbuild.tar.gz to folder SBo_tosubmit
+mv $SLACKBUILDS/$PRGNAM.tar.gz $SLACKBUILDS/SBo/tosubmit/
+
+# show the contents of tar.gz
+echo "Let's see the contents of submition..."
+tar -tvzf $SLACKBUILDS/SBo/tosubmit/$PRGNAM.tar.gz

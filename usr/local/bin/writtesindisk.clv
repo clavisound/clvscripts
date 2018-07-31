@@ -1,0 +1,12 @@
+#!/bin/bash
+echo Tbytes after boot
+awk '/sd/ {print $3"\t"$10 / 2 / 1024 / 1024 / 1024}' /proc/diskstats
+
+echo
+echo Gbytes after boot
+awk '/sd/ {print $3"\t"$10 / 2 / 1024 / 1024}' /proc/diskstats
+
+echo
+echo Mbytes after boot
+awk '/sd/ {print $3"\t"$10 / 2 / 1024}' /proc/diskstats
+

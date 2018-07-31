@@ -1,0 +1,23 @@
+#!/bin/bash
+# Requires: Works only on linux?
+# Clavisound. Sep-2014
+
+SOURCE=$1
+DEST=$2
+
+if [ "$SOURCE" = '' ]; then
+	echo "USAGE: $0 SOURCE DEST"
+	exit
+fi
+
+if [ ! -e "$SOURCE" ]; then
+	echo "Source file not found, aborting"
+	exit 1
+fi
+
+TIMEFORTOUCH=$(ls -l --time-style=+%Y-%m-%d\ %H:%M:%S "$SOURCE" | gawk -F' ' ' { print $6, $7 }')
+
+
+touch -d "$TIMEFORTOUCH" "$DEST"
+echo "Please verify that date (and time) are identical."
+ls -l "$SOURCE" "$DEST"

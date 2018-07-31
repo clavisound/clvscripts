@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# TODO: compare files. It are the same, abort
+# find /etc/ -name \*.new -exec sh -c 'cmp {} `echo {} | sed 's/.new//'`' \;
+
+find /etc/ -name \*.new -exec sh -c 'vim -d {} `echo {} | sed 's/.new//'`' \;
+find /etc/ -name \*.new -exec sh -c 'mv -bv {} `echo {} | sed 's/.new//'`' \;

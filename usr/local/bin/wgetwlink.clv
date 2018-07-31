@@ -1,0 +1,31 @@
+#!/bin/bash
+# TODO: handle strange and empty characters
+WGETOPTIONS=${WGETOPTIONS:-}
+URL=$(echo $1 | sed -f /etc/url-conv.sed)
+FILENAME=$(echo $URL | sed -e 's/.*\///g')
+
+STARTURL=$(echo $1 | cut -d':' -f1)
+if [ $STARTURL == "https" ]; then
+	WGETOPTIONS="$WGETOPTIONS --no-check-certificate"
+	echo "Downloading without certificate checking!"
+fi
+
+DOMAIN=$(echo $1 | cut -d'/' -f3)
+if [ "$DOMAIN" == "github.com" ]; then
+	# chance URL to proper filename
+	echo "TODO: github not properly supported!"
+	VERSION=$(echo $1 | sed -e 's+.*archive/v++' -e 's+.tar.*++')
+	PRGNAME=$(echo $1 | cut -d'/' -f5)
+	URL=$(echo $1 | sed -e "s+archive/.*+archive/v$VERSION/$PRGNAME-$VERSION.tar.gz+")
+	FILENAME=$(echo $URL | sed -e 's/.*\///g')
+fi
+
+wget "$URL" -O "$FILENAME"
+
+# keep only last url
+FILE_AND_PATH=$(echo "$URL" | sed -e 's+.*\/++')
+if [ "$FILE_AND_PATH" == "" ]; then
+	echo "URL is bad (probable ends with /), aborting"
+else
+	echo "$URL" > "$FILE_AND_PATH".link
+fi

@@ -1,0 +1,65 @@
+#!/bin/bash
+# Requires transcode, subtitleripper
+
+FILE=$1
+STREAM=${STREAM:-0x20}
+BLACK=${BLACK:-255,255,0,255}
+FORMAT=${FORMAT:-PPM}
+
+if [ "$FILE" = "" ]; then
+	echo "Usage: FORMAT=GZIP $0 file.vob 0x20 (stream) 0,255,255,255 (black values)"
+	echo "Requires two program suites: transcode and subtitleripper"
+	exit
+fi
+
+if [ "$2" != "" ]; then
+	STREAM=$2
+	echo "Using user STREAM: $STREAM"
+fi
+
+if [ "$3" != "" ]; then
+	BLACK=$3
+	echo "Using user BLACK values: $BLACK"
+fi
+
+PROJECT=$(echo $FILE | sed 's/.vob$//')
+mkdir $PROJECT.$STREAM
+cd $PROJECT.$STREAM
+echo "I run geeqie to test the result. If you see many white images"
+echo "If you see abnormally pictures try to start the program with"
+echo "$0 file.vob 0x20 (stream) 0,255,255,255 (black values)"
+echo
+
+geeqie ./ &
+
+if [ "$FORMAT" = "PPM" ]; then
+	FORMAT=3
+else
+	FORMAT=2
+fi
+
+# extract and convert the stream with tee
+cat ../$FILE | tcextract -x ps1 -t vob -a $STREAM | tee $FILE.$STREAM.ps1 | subtitle2pgm -C 1 -g $FORMAT -c $BLACK -P -o $FILE.$STREAM--
+subtitle2vobsub -p $FILE.$STREAM.ps1 -o $FILE.$STREAM
+
+# copy .sub .idx
+cp $FILE.$STREAM.idx ../
+cp $FILE.$STREAM.sub ../
+
+## TODO
+echo "Manually continue with..."
+echo "pgm2txt-el.clv -d $FILE.$STREAM--"
+echo "srttool -s -i $FILE.$STREAM.srtx -o $FILE.$STREAM.srt"
+
+
+### TODO keep the stream with pipe? (I have failed)
+### rm pipeforSRTandCAT
+### mkfifo pipeforSRTandCAT
+### cat < pipeforSRTandCAT > $FILE.$STREAM.ps1 &
+### subtitle2pgm < pipeforSRTandCAT -c $BLACK -P -o $FILE.$STREAM\_\_ &
+### cat ../$FILE | tcextract -x ps1 -t vob -a $STREAM > pipeforSRTandCAT
+
+### old (keep the stream without tee)
+### cat ../$FILE | tcextract -x ps1 -t vob -a $STREAM > $FILE.$STREAM.ps1
+### ln ../$FILE.$STREAM.ps1 ./
+### subtitle2pgm -i $FILE.$STREAM.ps1 -o $FILE.$STREAM\_\_

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+function control()
+{
+for i in /sys/bus/pci/devices/0000\:0*/power/control; do echo $1 > $i; done
+for i in /sys/bus/i2c/devices/i2c-*/device/power/control; do echo $1 > $i; done
+
+if [ "$1" == "auto" ]; then
+	for i in /sys/class/scsi_host/host*/link_power_management_policy; do echo min_power > $i; done
+else 
+	for i in /sys/class/scsi_host/host*/link_power_management_policy; do echo max_performance > $i; done
+fi
+}
+
+if [ "$1" == "auto" ] || [ "$1" == "on" ];then
+	control $1
+#	echo "$1"
+fi
+
+grep . /sys/bus/pci/devices/0000*/power/control
+grep . /sys/bus/i2c/devices/i2c-*/device/power/control
+grep . /sys/class/scsi_host/host*/link_power_management_policy

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# requires gawk, sed
+
+UPTIME=$(gawk -F' ' '{print $1}'  /proc/uptime | sed 's/\...//')
+IDLETIME=$(gawk -F' ' '{print $2}'  /proc/uptime | sed 's/\...//')
+
+UPTIMEHOURS=$(expr $UPTIME / 3600)
+UPTIMEIDLE=$(expr $IDLETIME / 3600)
+echo "Total uptime in hours: $UPTIMEHOURS"
+echo "Total idle time in hours: $UPTIMEIDLE"
+

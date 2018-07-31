@@ -1,0 +1,20 @@
+#!/bin/bash
+OPTIMIZE=$ARCH
+SLACKBUILD=$1
+
+if [ ! -e $SLACKBUILD ]; then
+	echo "Error: $SLACKBUILD is absent."
+	exit 1
+fi
+OPTIMIZETAG=$(echo $OPTIMIZE | tr '-' '_') # tag the filename
+
+sed -e "s,x86_64,$OPTIMIZE," \
+	-e "s,-fPIC,-march=$OPTIMIZE -mtune=$OPTIMIZE," \
+	-e 's/LIBDIRSUFFIX="64"/LIBDIRSUFFIX=""/' \
+	-e "s,\$ARCH-\$BUILD\$TAG,$OPTIMIZETAG-\$BUILD\$TAG," \
+	-e "s,\--build=\$ARCH-slackware,--build=i486-slackware," \
+	-e "s,\--host=\$ARCH-slackware,--build=i486-slackware," \
+		$SLACKBUILD
+
+# PROPER. Removed \$ for ffmpeg
+# -e "s,\$ARCH-\$BUILD\$TAG,$OPTIMIZETAG-\$BUILD\$TAG," \

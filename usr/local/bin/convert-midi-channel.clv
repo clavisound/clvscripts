@@ -1,0 +1,21 @@
+#!/bin/bash
+# Michales Michaloudes (clavisound) - 2012
+
+SYSEX="$1"
+
+# Convert syx binary file to text-editable form
+xxd "$SYSEX" > "$SYSEX".xxd
+
+# TODO: Work with variables.
+# Change the midi channel from 30 (ch1) to 32 (ch3)
+head -1 "$SYSEX".xxd | grep -q 'f042 3028'
+if [ $? = 1 ]; then
+	echo "ABORTING: File $SYSEX.xxd is not suitable for convertion."
+else
+	sed '1s/f042 3028/f042 3228/' "$SYSEX".xxd > "$SYSEX".xxd.sed
+	# Convert back to binary
+	xxd -r "$SYSEX".xxd.sed > "$SYSEX".clv-converted.syx
+	echo "$SYSEX.clv-converted.syx should be ready."
+	rm "$SYSEX".xxd "$SYSEX".xxd.sed
+fi
+

@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ "$1" = "" ]; then
+	clear
+	echo "A program that moves *one* file and gives the ownership to the new home."
+	echo -e "Example: $0 /tmp/myfile /home/myhome/blah-blah equals to\n"
+	echo "mv /tmp/myfile /home/myhome/blah-blah"
+	echo -e "chown myhome /home/myhome/blah-blah\n"
+	echo "This program has the limitation that can work automagicaly only"
+	echo "if the user has home folder like /home/USER"
+fi
+
+FILE="$1"
+DEST="$2"
+
+USER=$(realpath "$DEST" | sed -e 's+/home/++' -e 's+/.*++')
+
+if [ "$USER" = "" ]; then
+	echo "Something is wrong, probably the destination does not contains"
+	echo "/home/folder/blah-blah"
+	exit 1
+fi
+
+# destination is folder? if yes add the filename
+if [ -d "$DEST" ]; then
+	DEST=$DEST/$(basename "$FILE")
+fi
+
+# does this user has home folder on /etc/passwd?
+grep -q .home.$USER /etc/passwd
+if [ $? = 0 ]; then
+	mv -v "$FILE" "$DEST"
+	chown -v $USER "$DEST"
+else
+	echo "User $USER does not exists in /home/$USER."
+	echo "Your system is fine, but this script is dummy, and cannot handle that."
+	exit 1
+fi
+

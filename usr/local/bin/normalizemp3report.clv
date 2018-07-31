@@ -1,0 +1,64 @@
+#!/bin/bash
+FILE=$1
+ISFOLDER=0
+WRITEDATA=1 # write data by default.
+# TODO. User can enter this value if we don't have write permissions
+# to the folder we are working. Make the checks with function..
+REPORTFOLDER=$2
+
+if [ "$FILE" == '' ]; then
+	echo "Gime a file or a folder to check. $0 file.mp3"
+	exit 1
+fi
+
+if [ ! -r "$FILE" ]; then
+	echo "This file/directory does not exists or you don't have read permissions."
+	exit 1
+fi
+
+if [ -d "$FILE" ]; then
+	ISFOLDER=1
+	FOLDER="$FILE"
+fi
+
+if [ ! -w "$FILE" ]; then
+	WRITEDATA=0
+fi
+
+# do this only if the path is relative
+# convert the relative path to absolute
+FIRSTCHAR=`echo "$FILE" | cut -b 1`
+if [ "$FIRSTCHAR" != "/" ]; then
+       FOLDER=$(dirname "$FILE")
+fi
+
+if [ $ISFOLDER = 0 ] && [ "$WRITEDATA" = "0" ]; then
+	normalize -n "$FOLDER"/"$FILE"
+elif [ $ISFOLDER = 0 ] && [ "$WRITEDATA" = "1" ]; then
+	normalize -n "$FOLDER"/"$FILE" > "$FOLDER"/"$FILE".normalize.data
+	grep . "$FOLDER"/"$FILE".normalize.data
+elif [ "$ISFOLDER" = "1" ] && [ "$WRITEDATA" = "1" ]; then
+	for I in "$FOLDER"/*.mp3
+	do
+		normalize -n "$I" > "$FOLDER"/"$I".normalize.data
+	done	
+elif [ "$ISFOLDER" = "1" ] && [ "$WRITEDATA" = "0" ] && [ ! "$REPORTFOLDER" = '' ]; then
+	for I in "$FOLDER"/*.mp3
+	do
+		FILETEMP=$(echo $I | xargs -0 basename)
+		# BUG: can't redirect to space..
+		echo -n "$I" | xargs -0 normalize -n
+		#echo -n "$I" | xargs -0 normalize -n > echo -n $REPORTFOLDER__"$FILETEMP".normalize.data | xargs -0
+	grep . "$FOLDER"/*.normalize.data
+	done	
+elif [ "$ISFOLDER" = "1" ] && [ "$WRITEDATA" = "1" ]; then
+	for I in "$FOLDER"/*.mp3
+	do
+		FILETEMP=$(echo "$I" | xargs -0 basename)
+		# BUG: can't redirect to space..
+		echo -n "$I" | xargs -0 normalize -n
+	done	
+	grep . "$FOLDER"/*.normalize.data
+else
+	echo "BUG"
+fi

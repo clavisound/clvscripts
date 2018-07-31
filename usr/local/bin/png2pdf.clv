@@ -1,0 +1,45 @@
+#!/bin/bash
+# Requires libtiff
+#
+# This program convert many pngs in a folder to pdf.
+#
+# TODO: add temp variable to multipage.tiff
+
+TEMP=${TEMP:-/mnt/tempfs}
+# if TEMP folder is not exists, default to system wide /tmp
+if [ ! -e $TEMP ]; then
+	TEMP=/tmp
+fi
+FOLDER="$1"
+
+TEMP=$TEMP/png2pdf.clv`whoami`
+mkdir -p $TEMP
+
+if [ "$FOLDER" == '' ]; then
+	echo "Gime a folder to find your sorted pngs! ex. $0 ~/my_sorted_pngs"
+fi
+
+if [ "$FOLDER" == './' ]; then
+	FOLDER=`pwd`
+fi
+
+# do this only if the path is relative
+# convert the relative path to absolute
+FIRSTCHAR=`echo $1 | cut -b 1`
+if [ $FIRSTCHAR != "/" ]; then
+       FOLDER=$PWD/`basename "$1"`
+fi
+
+cd "$FOLDER"
+for i in *.png
+do
+	# BUG: unsolved.. :( DPI is lost?
+	convert -resize 2480!x3508! $i $TEMP/$i.tiff
+	echo "converted $i to $TEMP/$i.tiff"
+done
+FILENAME=`ls *.png | sort | tail -1`
+
+tiffcp $TEMP/*.tiff $TEMP/multipagetiff.tiff
+tiff2pdf -z -F -p A4 $TEMP/multipagetiff.tiff -o "$FOLDER"/"$FILENAME".pdf
+
+rm $TEMP/*.tiff

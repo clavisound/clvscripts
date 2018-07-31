@@ -1,0 +1,36 @@
+#!/bin/bash
+# TODO: proper name handling...
+
+FILE="$1"
+
+function lamewithtag (){
+	TITLE=`grep Tracktitle $INF | gawk -F "'" ' { print $2 } '`
+	ALBUM=`grep Albumtitle $INF | gawk -F "'" ' { print $2 } '`
+	NUMBER=`grep Tracknumber $INF | gawk -F " " ' { print $2 } '`
+	echo "$TITLE, $ALBUM, $NUMBER"
+	nice lame -V 3 --vbr-new --add-id3v2 --tt "$TITLE" --tn "$NUMBER" --ta "$ALBUM" "$WAV"
+}
+
+function flacme (){
+#	nice flac -f "$(echo $WAV | sed -n 7p)"
+	# OK. flac -f "$WAV"
+	flac "$WAV"
+}
+
+function cdwav (){
+for INF in audio_*.inf
+do
+	WAV=`echo $INF | sed -e 's/.inf/.wav/g'`
+	lamewithtag
+	flacme
+done
+}
+
+if [ -r "$FILE" ]; then
+	WAV="$FILE"
+	flacme
+#	nice lame -V 3 --vbr-new "$WAV"
+else
+	cdwav
+fi
+

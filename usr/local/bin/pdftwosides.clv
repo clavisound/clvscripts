@@ -1,0 +1,8 @@
+#!/bin/bash
+TMP=${TMP:-/mnt/tempfs}
+# mkdir $TMP
+#FILE1=$(echo basename $1 | sed -s /.pdf//)
+pdf180 $1 -o $TMP/file1.pdf
+pdf180 $2 -o $TMP/file2.pdf
+pdfjam $1 $2 $TMP/file2.pdf $TMP/file1.pdf --nup 2x1 --landscape --outfile `basename $1``basename $2`-two-sides.pdf
+rm $TMP/file1.pdf $TMP/file2.pdf

@@ -1,0 +1,86 @@
+#!/bin/bash
+# TODO: user can specify a folder. Convert the flac files in the specified folder.
+FILENAME="$1"
+QUALITY=$2
+
+if [ "$1" == '' ]; then
+	echo "Usage $0 name.flac QualityNumber -> 3 is normal 6 <- we have artifacts) 4 is ok for web"
+	exit
+fi
+
+if [ "$QUALITY" == '' ]; then
+	QUALITY=3
+fi
+
+function lamewithtagDEBUG (){
+# TODO: alternative approach with array.
+	for I in TITLE ALBUM NUMBER DATE ARTIST COMMENTS
+	do
+		CURRENTAG[$I]=$(grep $I "$FILENAME".tags | gawk -F "=" ' { print $2 } ') 
+
+		if [ "${CURRENTAG[$I]}" == "" ]; then
+			echo "->> $I tag: is empty non-fatal... <-- "
+		else
+			echo "$I: ${CURRENTAG[$I]}" #DEBUG
+		fi
+		echo "DEBUG: ${CURRENTAG[$TITLE]}"
+	done
+	# --ignore-tag-errors
+#	echo 'nice lame -V 3 --vbr-new --add-id3v2 --tt "$TITLE" --tn "$NUMBER" --ta "$ALBUM" $FILENAME'
+	echo "${CURRENTAG[$TITLE]} --tn ${CURRENTAG[$NUMBER]} --ta ${CURRENTAG[$ALBUM]} $FILENAME"
+}
+
+function lamewithtag (){
+FILENAMEONLY=$(echo $FILENAME | sed 's/.flac$//')
+		TITLE=`grep TITLE "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+		ALBUM=`grep ALBUM "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+		NUMBER=`grep NUMBER "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+		DATE=`grep DATE "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+		ARTIST=`grep ARTIST "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+		COMMENTS=`grep COMMENTS "$FILENAME".tags | gawk -F "=" ' { print $2 } '` 
+		nice flac -dc "$FILENAME" | nice lame -V $QUALITY --vbr-new --add-id3v2 \
+			--tt "$TITLE" \
+		       	--tn "$NUMBER" \
+		       	--ta "$ARTIST" \
+		       	--ty "$DATE" \
+		       	--tl "$ALBUM" \
+		       	--tc "$COMMENTS" \
+			- "$FILENAMEONLY".mp3
+}
+function tag (){
+		TITLE=`grep TITLE "$FILENAMEONLY".tags | gawk -F "=" ' { print $2 } '` 
+		ALBUM=`grep ALBUM "$FILENAMEONLY".flac.tags | gawk -F "=" ' { print $2 } '` 
+		NUMBER=`grep NUMBER "$FILENAMEONLY".flac.tags | gawk -F "=" ' { print $2 } '` 
+		DATE=`grep DATE "$FILENAMEONLY".flac.tags | gawk -F "=" ' { print $2 } '` 
+		ARTIST=`grep ARTIST "$FILENAMEONLY".flac.tags | gawk -F "=" ' { print $2 } '` 
+		COMMENTS=`grep COMMENTS "$FILENAMEONLY".flac.tags | gawk -F "=" ' { print $2 } '` 
+		id3tag -w -n -a"$ARTIST" -A"$ALBUM" -s"$TITLE" -c"$COMMENTS" -t"$NUMBER" -y"$DATE" \ "$FILENAMEONLY".mp3
+}
+
+function exporttags (){
+# export tags if absent
+if [ ! -e "$FILENAME".tags ]; then
+	metaflac "$FILENAME" --export-tags-to="$FILENAME".tags
+else
+	echo "Tags are already here, erase "$FILENAME".tags to recreate them."
+fi
+}
+
+# if user does not specify a file, convert all the flacs in the current folder.
+if [ "$FILENAME" == "" ]; then
+	for FILENAME in ./*.flac
+	do
+		exporttags "$FILENAME"
+		FILENAMEONLY=$(echo $FILENAME | sed 's/.flac$//')
+		if [ -e "$FILENAMEONYLE".mp3 ]; then
+			echo "mp3 file found, not creating mp3 file, only tagging."
+			echo "Erase the mp3 file if you want to re-create it."
+			tag "$FILENAMEONLY"
+		else
+			lamewithtag "$FILENAME"
+		fi
+	done
+else
+	exporttags
+	lamewithtag
+fi
