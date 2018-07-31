@@ -23,7 +23,7 @@ echo
 
 function cpus (){
 #	CORESLIVE=`cat /sys/devices/system/cpu/online | tr -d 0-` # 1 = 2 cpus!
-	CORESLIVE=$(grep processor /proc/cpuinfo | wc -l) # IN loops 2 = 2!
+	CORESLIVE=$(grep processor.*: /proc/cpuinfo | wc -l) # IN loops 2 = 2!
 }
 
 function governor_is_available (){
@@ -68,6 +68,8 @@ function reset_lowest_and_maximum (){
 		exit
 	fi
 	cpus
+
+	# TODO: make this function - start
 	CPUCOUNT=0
 	while [ ${CPUCOUNT} -lt ${CORESLIVE} ]; do
 		MINFREQ=`cat /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/cpuinfo_min_freq`
@@ -76,6 +78,8 @@ function reset_lowest_and_maximum (){
 		echo $MAXFREQ > /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/scaling_max_freq 
 		let CPUCOUNT=CPUCOUNT+1
 	done
+	let CPUCOUNT=CPUCOUNT-1
+	# Make this function -end
 }
 
 function echo_cpu (){
@@ -86,6 +90,7 @@ function echo_cpu (){
 		echo "echo $1 > /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/$2"
 		let CPUCOUNT=CPUCOUNT+1
 	done
+	let CPUCOUNT=CPUCOUNT-1
 }
 
 # Disabling / enabling CPUS by user argument
@@ -204,10 +209,11 @@ elif [ "$HZ_OR_ECHO" ==  "pianoteq" ] || [ "$HZ_OR_ECHO" == "n" ]; then
 	sleep_and_exit
 elif [ "$HZ_OR_ECHO" =  "compile" ] || [ "$HZ_OR_ECHO" = "c" ]; then
 	governor_is_available
-	MINFREQ=600000
-	LOWERMAXFREQ=160000
 	echo_cpu conservative scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-	restoreupthreshold
+	MAXFREQ=`cat /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/cpuinfo_max_freq`
+	MINFREQ=`cat /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/cpuinfo_min_freq`
+	LOWERMAXFREQ=$(echo "($MINFREQ + $MAXFREQ) / 2" | bc)
+	# restoreupthreshold
 	echo_cpu $MINFREQ scaling_min_freq #	echo $MINFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
 	echo_cpu $LOWERMAXFREQ scaling_max_freq #	echo $LOWERMAXFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
 	echo "No of CPUS: $CORESLIVE adjusted. Maximum frequency capped to $LOWERMAXFREQ MHz. Current Mhz:"
@@ -216,9 +222,10 @@ elif [ "$HZ_OR_ECHO" =  "compile" ] || [ "$HZ_OR_ECHO" = "c" ]; then
 	sleep_and_exit
 elif [ "$HZ_OR_ECHO" =  "battery" ] || [ "$HZ_OR_ECHO" = "b" ]; then
 	governor_is_available
-	MINFREQ=600000
-	LOWERMAXFREQ=1200000
 	echo_cpu powersave scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	MAXFREQ=`cat /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/cpuinfo_max_freq`
+	MINFREQ=`cat /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/cpuinfo_min_freq`
+	LOWERMAXFREQ=$(echo "(($MINFREQ + $MAXFREQ) / 2) - 100000" | bc)
 	#restoreupthreshold
 	echo_cpu $MINFREQ scaling_min_freq #	echo $MINFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
 	echo_cpu $LOWERMAXFREQ scaling_max_freq #	echo $LOWERMAXFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq

@@ -37,7 +37,7 @@ audio_and_video
 
 FILE=$(find ./ -name \*$LINK\* | sed -e 's/\.f...*\.mp4//g' | sed -f /etc/escapechars.sed | head -1)
 
-ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -vcodec copy \
-	-y "$FILE".merged.mp4
-echo ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -vcodec copy \
-	-y "$FILE".merged.mp4
+ffmpeg -i "${AUDIO}" -i "${VIDEO}" -acodec copy -vcodec copy \
+	-y "${FILE}".merged.mp4
+echo ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec copy -vcodec copy \
+	-y "$FILE".merged.mp4; echo rm "${AUDIO}"; echo rm "${VIDEO}"

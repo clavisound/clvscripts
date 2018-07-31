@@ -2,8 +2,15 @@
 #
 # This script compares the filenames of two folders and moves the files.
 # Michales (clavisound) Michaloudes, April, 2015
-FOLDERTODELETE=`realpath $2`
+# modified to ignore dirs in July of 2018
+
+if [ $# -lt 2 ]; then
+	echo "Usage: $0 TEMPLATEFOLDER FOLDERTODELETE"
+	exit 1
+fi
+
 TEMPLATEFOLDER=`realpath $1`
+FOLDERTODELETE=`realpath $2`
 
 function folder_exists(){
 	if [ ! -e $CHECK ]; then
@@ -12,10 +19,6 @@ function folder_exists(){
 	fi
 }
 
-if [ $# == 0 ]; then
-	echo "Usage: $0 TEMPLATEFOLDER FOLDERTODELETE"
-	exit 1
-fi
 
 # check if folder exists
 folder_exists $FOLDERTODELETE
@@ -26,9 +29,11 @@ mkdir $FOLDERTODELETE.todelete
 for FILES in $FOLDERTODELETE/*
 do
 	ONLYFILE=`basename $FILES`
-	if [ ! -f $TEMPLATEFOLDER/$ONLYFILE ]; then
-		echo $FILES is missing from $TEMPLATEFOLDER
+	if [ ! -f $TEMPLATEFOLDER/$ONLYFILE ] && [ ! -d $FILES ]; then
+		echo -e "$FILES is missing from $TEMPLATEFOLDER\n Moving..."
 		mv -v $FOLDERTODELETE/$ONLYFILE $FOLDERTODELETE.todelete/
+#	else
+#		echo "$ONLYFILE is dir or absent from $FOLDERTODELETE or nothing to do."
 	fi
 done
 

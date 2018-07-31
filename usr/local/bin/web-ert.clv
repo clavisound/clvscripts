@@ -1,0 +1,73 @@
+#!/bin/bash
+
+if [ "$1" == "" ]; then
+	echo "Usage: $0 60 (minutes) filename 1/2/3/PLAY/PLAY2/WORLD"
+	exit 1
+fi
+
+if [ "$3" == "1" ]; then
+	# ERT1
+	PARTURL="0XYWTzFlEyo"
+elif [ "$3" == "2" ]; then
+	# ERT2
+	PARTURL="AOVVjaLbGEk"
+elif [ "$3" == "3" ]; then
+	# TODO
+	PARTURL="ELB7cKTx5ig"
+elif [ "$3" == "PLAY" ]; then
+	# PLAY
+	PARTURL="bVREmAZt6i0"
+elif [ "$3" == "PLAY2" ]; then
+	# PLAY2
+	PARTURL="-OSoL74Gi0U"
+elif [ "$3" == "WORLD" ]; then
+	# WORLD
+	PARTURL="qRY56sJJ2to"
+elif [ "$3" == "" ]; then
+	echo "You must give a channel: 1/2/3/PLAY/PLAY2/WORLD"
+	exit 1
+fi
+
+for mount in sandisk8g 32G_SD
+do
+	mount /media/$mount
+	grep -q $mount /proc/mounts
+	# TODO: if $? >=1 then ERROR=1 else...
+	if [ $? == 0 ]; then
+		FOLDER=/media/$mount
+		break
+	fi
+done
+cd $FOLDER
+DATE=$(date +%d-%b-%Y__%R.%S)
+# convert minutes to seconds
+KILLAFTER=$(expr $1 \* 60)
+
+if [ "$2" != "" ]; then
+	NAME=$2
+	SUFFIX=$DATE\_\_$NAME
+else
+	SUFFIX=$DATE
+fi
+
+
+if [ $KILLAFTER -lt 60 ]; then
+	echo "Error. Gime me minutes to record, like $0 60"
+	exit 1
+fi
+
+# TODO: choose quality 94 = 480p, 95 = 720p
+youtube-dl -f 94 http://www.youtube.com/watch?v=$PARTURL -o ERT$3\_$SUFFIX.mp4 &
+
+sleep $KILLAFTER
+# Grab the pid from date, to kill only this PID
+PIDFFMPEG=$(ps -eo pid,command | grep ffmpeg.*$SUFFIX | grep -v grep | sed  -e 's/^ *//' -e 's/ .*//')
+PIDYOUTUBEDL=$(ps -eo pid,command | grep youtube-dl.*$SUFFIX | grep -v grep | sed  -e 's/^ *//' -e 's/ .*//')
+echo -e "\n -- YOUTUBE pid: $PIDYOUTUBEDL, FFMPEG pid: $PIDFFMPEG --\n"
+kill $PIDYOUTUBEDL
+kill $PIDFFMPEG
+
+# correct the filename
+mv ERT$3\_$SUFFIX.mp4.part ERT$3\_$SUFFIX.mp4
+sync
+

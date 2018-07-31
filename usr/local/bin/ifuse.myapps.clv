@@ -52,15 +52,17 @@ if [ "$1" == "" ]; then
 	       	#ifuse -o sync --appid $LINE ~/iOS/$LINE 
 	       	ifuse -o sync --documents $LINE ~/iOS/$LINE
 		echo "mounted $LINE on ~/iOS/$LINE"
-		echo "fusermount -u ~/iOS/$LINE"
+		IFUSEUMOUNT+="fusermount -u ~/iOS/$LINE;"
 	done
 else
 		mkdir -p ~/iOS/$1
-       		ifuse -o sync --documents $1 ~/iOS/"$1" && echo "mounted $1 on ~/iOS/$1"
+       		ifuse -o sync --documents $1 ~/iOS/"$1" && echo "mounted $1 on ~/iOS/$1" || echo "Error"
 		echo "fusermount -u ~/iOS/$1"
 fi
 
 # okwith libimobiledive-1.0.7, ifuse-1.1.2
 mkdir -p ~/iOS/user-area
-ifuse ~/iOS/user-area
-echo "iOS user-area mounted"
+ifuse ~/iOS/user-area || echo "Error"
+
+# echo umount commands
+echo $IFUSEUMOUNT
