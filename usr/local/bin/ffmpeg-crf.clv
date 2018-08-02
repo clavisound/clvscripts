@@ -1,0 +1,33 @@
+#!/bin/bash
+
+FILE=$1
+RESO=$2
+TYPE=$3
+CRF=$4
+OUTFILE=$FILE
+
+if [ "$1" == "" ]; then
+	echo "Usage $0 FILE CROP(576) film/animation/etc CRF(23-18)"
+	exit
+fi
+
+echo $FILE | grep -q VTS_
+if [ "$?" == 0 ]; then # concat, we have seperate VOB files
+	# get the name of parent folder
+	OUTFILE=$(pwd | sed -e 's+/VIDEO_TS.*++' -e 's+.*/++')
+	# remove *0.VOB it's the menu
+	FILE="\"concat:$(echo *.VOB|tr \  \| | sed 's/VTS.*0\.VOB|//')\""
+fi
+
+if [ "$RESO" == "" ]; then
+	RESO=576
+fi
+
+if [ "$TYPE" == "" ]; then
+	TYPE="film"
+fi	
+
+echo "ffmpeg -threads 0 -i "$FILE" -vcodec libx264 -crf $CRF -preset veryfast -tune $TYPE -vf crop=720:$RESO -acodec libmp3lame -aq 4 -y \"./$OUTFILE.mp4\""
+
+ffmpeg -threads 0 -i "$FILE" -vcodec libx264 -crf $CRF -preset veryfast -tune $TYPE -vf crop=720:$RESO -acodec libmp3lame -aq 4 -y "./$OUTFILE.mp4"
+
