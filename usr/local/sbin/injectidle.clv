@@ -1,0 +1,36 @@
+#!/bin/bash
+
+function cpus (){
+	# 0 = 1
+	CORESLIVE=$(expr `grep processor.*: /proc/cpuinfo | wc -l` - 1) 
+}
+
+cpus
+if [ -e /sys/class/thermal/cooling_device$CORESLIVE/max_state ]; then
+	MAXSTATE=$(cat /sys/class/thermal/cooling_device$CORESLIVE/max_state)
+	echo "Idle injection support found with max idles: ${MAXSTATE}%"
+else
+  	echo "Idle injection support not found. My life has no meaning. Aborting."
+	exit 1
+fi
+
+function echo_cpu (){
+	CPUCOUNT=0
+	while [ ${CPUCOUNT} -le ${CORESLIVE} ]; do
+		echo $1 > /sys/class/thermal/cooling_device$CORESLIVE/cur_state
+		echo "echo $1 > /sys/class/thermal/cooling_device$CORESLIVE/cur_state"
+		KERNEL=$(grep . /sys/class/thermal/cooling_device$CORESLIVE/cur_state)
+		echo "Kernel stored: ${KERNEL}%"
+		let CPUCOUNT=CPUCOUNT+1
+	done
+	let CPUCOUNT=CPUCOUNT-1
+}
+
+if [[ $1 == 0 ]]; then
+  echo_cpu $1
+elif [[ $1 -ge 1 ]] && [[ $1 -le $MAXSTATE ]]; then
+  echo_cpu $1
+else
+	echo "Usage: $0 [number]. 0=disables idle injection."
+  exit 1
+fi
