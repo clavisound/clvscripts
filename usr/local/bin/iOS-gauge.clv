@@ -1,0 +1,8 @@
+#!/bin/bash
+# wait for usbmuxd
+sleep 1
+
+FILE=/var/log/iOS.GasGauge
+
+date >> $FILE
+idevicediagnostics diagnostics GasGauge | grep integer | sed -e 's+.*<integer>++' -e 's+</int.*++' >> $FILE
