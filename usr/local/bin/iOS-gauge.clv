@@ -5,6 +5,8 @@ sleep 1
 FILE=/var/log/iOS.GasGauge
 
 MESSAGE=`date -R`
+MESSAGE="\n"
+MESSAGE+=$(ideviceinfo --simple | grep DeviceName)
 MESSAGE+="\nCycle Counts, designed capacity, real capacity:\n"
 MESSAGE+=$(idevicediagnostics diagnostics GasGauge | grep integer | sed -e 's+.*<integer>++' -e 's+</int.*++')
 
