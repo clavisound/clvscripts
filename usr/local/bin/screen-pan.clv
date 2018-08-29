@@ -1,13 +1,17 @@
 #!/bin/bash
 RESO="$1"
-CURSCREEN=$(xrandr -q | grep .*\ connected | sed -e 's/\ .*.//')
+CURSCREEN=$(xrandr -q | grep \* -B1 | grep .*\ connected | sed -e 's/\ .*.//')
+SCREENS=$(xrandr -q | grep .*\ connected | sed -e 's/\ .*.//' | wc -l)
+echo "Using screen: $CURSCREEN"
+echo "Screens: $SCREENS"
 
 if [ "$RESO" == "" ]; then
 	echo "Usage: $0 1440x768 (or other numbers)"
-	echo "Not resolution given, resetting to default resolution."
-	RESO=$(xrandr -q | grep \* | gawk -F" " ' { print $1 }')
-	echo "xrandr --output $CURSCREEN --panning $RESO"
-	xrandr --output $CURSCREEN --panning $RESO
+	echo "Not resolution given, disable panning."
+	echo "xrandr --output $CURSCREEN --panning 0x0"
+	# TODO: multiple screens?
+	# RESO=$(xrandr -q | grep \* | gawk -F" " ' { print $1 }' | head -1)
+	xrandr --output $CURSCREEN --panning 0x0
 else
 	xrandr --output $CURSCREEN --panning $RESO
 fi

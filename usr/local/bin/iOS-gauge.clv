@@ -4,5 +4,8 @@ sleep 1
 
 FILE=/var/log/iOS.GasGauge
 
-date >> $FILE
-idevicediagnostics diagnostics GasGauge | grep integer | sed -e 's+.*<integer>++' -e 's+</int.*++' >> $FILE
+MESSAGE=`date -R`
+MESSAGE+="\nCycle Counts, designed capacity, real capacity:\n"
+MESSAGE+=$(idevicediagnostics diagnostics GasGauge | grep integer | sed -e 's+.*<integer>++' -e 's+</int.*++')
+
+echo -e $MESSAGE >> $FILE
