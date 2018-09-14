@@ -1,7 +1,7 @@
 #!/bin/bash
 RATE=100000
-#PATCHFOLDER=${PATCHFOLDER:-/media/270G/freecom/flow/kernel/patches/incr/}
-PATCHFOLDER=${PATCHFOLDER:-/home/krgsf/flow/kernel/patches/incr/}
+PATCHFOLDER=${PATCHFOLDER:-~/src/kernel/patches/incr/}
+mkdir -p $PATCHFOLDER
 
 completeversion=$1
 lastversion=$2
@@ -10,14 +10,35 @@ lastdigit=`echo $1 | awk -F"." '{ print $3 }'` # grabs the last digit
 majorversion=`echo $1 | awk -F"." '{ print $1"."$2 }'` # grabs major version ie: 3.0
 bigversion=`echo $1 | awk -F"." '{ print $1".x" }'` # grabs big version ie: 3.x
 
-if [ "$2" == "" ]; then
+function RemoteVersion(){
+	echo "I will try to find the latest patched version for YOUR kernel"
+	lastdigit=`echo $yourversion | awk -F"." '{ print $3 }' | sed 's/\(...\)\(.*\)/\1/'` # grabs the last digit
+	majorversion=`echo $yourversion | awk -F"." '{ print $1"."$2 }'` # grabs major version ie: 3.0
+	masterversion=`echo $yourversion | awk -F"." '{ print $1 }'` # grabs big version ie: 3.x
+	echo "YOUR version is: $majorversion.$lastdigit"
+	netversion=$(echo cls --sort=date | lftp ftp://ftp.otenet.gr/pub/linux/kernel/linux/kernel/v$masterversion.x/ | grep -E "ChangeLog-$majorversion.*" | head -1 | sed 's/ChangeLog-[0-9]\.[0-9]*.//')
+	echo "Try $0 $majorversion.$lastdigit $netversion"
+	exit 1
+}
+
+function usage(){
 	echo "Error: I need the the version number to stop."
 	echo "Syntax is sh $0 3.0.1 18"
 	echo "Add -p at the end to apply the allready downloaded patches"
 	echo
 	echo "Base url is ftp://ftp.otenet.gr/pub/linux/kernel/linux/kernel/"
-	echo "PATCHFOLDER is set to $PATCHFOLDER"
-	exit
+}
+
+if [ "$2" == "" ] && [ "$completeversion" == "" ]; then
+	usage
+	yourversion=$(uname -r)
+	RemoteVersion $yourversion
+fi
+
+if [ "$2" == "" ] && [ "$completeversion" != "" ]; then
+	usage
+	yourversion=$completeversion
+	RemoteVersion $yourversion
 fi
 
 # if latest revision = 1 then different link..
@@ -28,9 +49,10 @@ while [ ${lastdigit} -lt ${lastversion} ]; do
 	fi
 		let currentdown=${lastdigit}+1
 		# download the patch
-		$COMMAND $RATE ftp://ftp.otenet.gr/pub/linux/kernel/linux/kernel/v$bigversion/incr/patch-${majorversion}.${lastdigit}-${currentdown}.xz
+		$COMMAND ftp://ftp.otenet.gr/pub/linux/kernel/linux/kernel/v$bigversion/incr/patch-${majorversion}.${lastdigit}-${currentdown}.xz
+		echo $COMMAND ftp://ftp.otenet.gr/pub/linux/kernel/linux/kernel/v$bigversion/incr/patch-${majorversion}.${lastdigit}-${currentdown}.xz
 		# download ChangeLog
-		$COMMAND $RATE ftp://ftp.otenet.gr/pub/linux/kernel/linux/kernel/v$bigversion/ChangeLog-${majorversion}.${currentdown}
+		$COMMAND ftp://ftp.otenet.gr/pub/linux/kernel/linux/kernel/v$bigversion/ChangeLog-${majorversion}.${currentdown}
 		let lastdigit=lastdigit+1
 done
 }
