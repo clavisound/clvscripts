@@ -95,3 +95,5 @@ sleep 1
 
 # disable wwan
 echo disable > /proc/acpi/ibm/wan
+
+wicd-cli -c -z
