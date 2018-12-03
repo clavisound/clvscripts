@@ -1,0 +1,32 @@
+#!/bin/bash
+
+CURL=$(echo $1 | sed 's/_..ts//')
+
+# if not ends with m3u8, then this
+echo "$CURL" | grep -q m3u8
+if [ $? == 1 ]; then
+	if [ $2 == '' ]; then
+		echo "Gimme a name. ex: $0 URL filename"
+		exit
+	fi
+	FILE=$(echo -n $2__; date +%d%m%y)
+	
+	curl -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
+	curl -k --limit-rate 100k "${CURL}_[10-99].ts" -o "${FILE}__0#1.ts"
+	curl -k --limit-rate 100k "${CURL}_[100-146].ts" -o "${FILE}__#1.ts"
+else
+	# if ends with m3u8 then this
+#	FILE=$(echo "$1" | sed -e 's+.*paidikes-seires/.*/20+20+' -e 's+.mp4/.*++'g)
+	FILE=$(echo "$1" | sed -e 's+.*/20+20+' -e 's+.mp4/.*++'g)
+	CHUNK=$(curl -s -k "$CURL" | grep m3u8)
+	CURLCLEAN=$(echo $1 | sed 's/playlist.*//')
+	curl -s -k "${CURLCLEAN}${CHUNK}" > temp.ts
+	CURLFIRST=$(grep _..ts temp.ts | head -1)
+	CURLLAST=$(grep _....ts temp.ts | sort -n | tail -1 | sed -e 's/.*_//g' -e 's/_....ts/_/g' -e 's/.ts//g')
+	CURL=$(echo ${CURLCLEAN}${CURLFIRST} | sed 's/_..ts//')
+	
+	curl -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
+	curl -k --limit-rate 100k "${CURL}_[10-99].ts" -o "${FILE}__0#1.ts"
+	curl -k --limit-rate 100k "${CURL}_[100-${CURLLAST}].ts" -o "${FILE}__#1.ts"
+fi
+

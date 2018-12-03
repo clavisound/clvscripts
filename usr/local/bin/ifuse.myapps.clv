@@ -50,12 +50,15 @@ if [ "$1" == "" ]; then
 		mkdir -p ~/iOS/$LINE
 		# was ok with libimobiledevice-1.0.6 idevicenstaller-1.0.0 usbmuxd-1.0.6
 	       	#ifuse -o sync --appid $LINE ~/iOS/$LINE 
-	       	ifuse -o sync --documents $LINE ~/iOS/$LINE
+	       	echo -e "Trying:\nifuse -o sync --documents $LINE ~/iOS/$LINE\n"
+	       	ifuse -o sync --documents $LINE ~/iOS/$LINE || echo "Error on $LINE"
+		
 		echo "mounted $LINE on ~/iOS/$LINE"
 		IFUSEUMOUNT+="fusermount -u ~/iOS/$LINE;"
 	done
 else
 		mkdir -p ~/iOS/$1
+       		echo "ifuse -o sync --documents $1 ~/iOS/"$1""
        		ifuse -o sync --documents $1 ~/iOS/"$1" && echo "mounted $1 on ~/iOS/$1" || echo "Error"
 		echo "fusermount -u ~/iOS/$1"
 fi
