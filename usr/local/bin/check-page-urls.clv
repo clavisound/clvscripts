@@ -5,6 +5,7 @@ URLPROT=$(echo $1 | awk -F":" '{ print $1 } ' )
 BASEURL=$(echo "$1" | sed -e 's+http:/++' -e 's+https:/++')
 BASEURL=$(dirname $BASEURL)
 
-# echo $URLPROT:/$BASEURL
+echo $URLPROT:/$BASEURL
+sleep 2
 
 curl -ks "$URL" | grep a.href | grep -v mail | sed -e 's+.*<a href=\"+<a href=\"+' -e "s+<a href=\"+$URLPROT:/$BASEURL/+" -e 's+">.*++' | tr '\n' ' '
