@@ -8,6 +8,6 @@ if [ "$3" == '' ]; then
 	exit
 fi
 
-for f in ./*.$EXT; do echo file $PWD/$f; done > list
+for f in ./${NAME}*.$EXT; do echo file $PWD/$f; done > list
 ##ffmpeg -f concat -safe 0 -i list -c copy -y /media/40G-nfs/ert2/$NAME.$EXT
 ffmpeg -f concat -safe 0 -i list -threads 0 -vcodec libx264 -crf 23 -preset veryfast -tune $TYPE -acodec copy -y "./$NAME.mp4"
