@@ -20,9 +20,9 @@ else
 	FILE=$(echo "$1" | sed -e 's+.*/20+20+' -e 's+.mp4/.*++'g)
 	CHUNK=$(curl -s -k "$CURL" | grep m3u8)
 	CURLCLEAN=$(echo $1 | sed 's/playlist.*//')
-	curl -s -k "${CURLCLEAN}${CHUNK}" > temp.ts
-	CURLFIRST=$(grep _..ts temp.ts | head -1)
-	CURLLAST=$(grep _....ts temp.ts | sort -n | tail -1 | sed -e 's/.*_//g' -e 's/_....ts/_/g' -e 's/.ts//g')
+	curl -s -k "${CURLCLEAN}${CHUNK}" > temp.ts.list
+	CURLFIRST=$(grep _..ts temp.ts.list | head -1)
+	CURLLAST=$(grep _....ts temp.ts.list | sort -n | tail -1 | sed -e 's/.*_//g' -e 's/_....ts/_/g' -e 's/.ts//g')
 	CURL=$(echo ${CURLCLEAN}${CURLFIRST} | sed 's/_..ts//')
 	
 	curl -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
