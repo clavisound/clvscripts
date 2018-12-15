@@ -1,0 +1,31 @@
+#!/bin/bash
+#http://mirrors.slackware.com/mirrorlist/
+
+URL=$1
+URLPROT=$(echo $1 | awk -F":" '{ print $1 } ' )
+BASEURL=$(echo "$1" | sed -e 's+http:/++' -e 's+https:/++')
+BASEURL=$(dirname $BASEURL)
+
+LATESTPATCH=$(curl -s -r 0-60 ftp://ftp.slackware.com/pub/slackware/slackware64-14.2/patches/PACKAGES.TXT | head -2 | sed 's+.*;++')
+MD5LATEST=$(echo $LATESTPATCH | md5sum)
+
+echo "Latest patch date: $LATESTPATCH"
+sleep 2
+
+MIRRORS=$(curl -ks "$URL" | grep a.href | grep -v rsync | sed -e 's+.*http+http+' -e 's+</a>+slackware64-14.2/patches/PACKAGES.TXT+' -e 's+.*ftp+ftp+' | tr '\n' ' ')
+
+for MIRROR in $MIRRORS
+do
+#	echo -en testing: $MIRROR
+	MIRRORPATCH=$(curl -k -s -r 0-60 $MIRROR | head -2 | sed 's+.*;++')
+	MD5MIRROR=$(echo $MIRRORPATCH | md5sum)
+	# echo $MIRRORPATCH | grep -q "$LATESTPATCH" # does not work
+	echo $MD5LATEST | grep -q $MD5MIRROR
+	if [ $? -eq 0 ]; then
+		echo -en "\nUpdated mirror => $MIRROR"
+	else
+		echo -en "\nOld mirror: $MIRROR latest patch: "
+		echo $MIRRORPATCH
+	fi
+done
+

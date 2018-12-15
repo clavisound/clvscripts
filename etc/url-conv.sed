@@ -1,4 +1,4 @@
-s/%25/%/g
+s/%25//g
 s/%27/'/g
 s/%3A/:/g
 s+%2F+/+g
@@ -70,7 +70,7 @@ s/%CE%BA/κ/g
 s/%CE%BB/λ/g
 s/%CE%BC/μ/g
 s/%CE%BD/ν/g
-s/%CE%BE/χ/g
+s/%CE%BE/ξ/g
 s/%CE%BF/ο/g
 s/%CF%80/π/g
 s/%CF%81/ρ/g
