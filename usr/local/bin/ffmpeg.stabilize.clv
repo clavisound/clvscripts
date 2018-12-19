@@ -1,0 +1,99 @@
+#!/bin/bash
+# Written by clavisound, Jul-2014
+# Documentation: http://public.hronopik.de/vid.stab/features.php?lang=en
+#
+# BUG workaround: -pix_fmt yuv420p
+# https://github.com/georgmartius/vid.stab/issues/13
+# Requirements: vid.stab, faac, lame, x264, ffmpeg, ffprobe, sed, grep
+# TODO: libmp3lame
+FILE=$1
+CRF=$2
+VBITRATE=${VBITRATE:-2400k} # for Samsung-GT-S8500 720p I suggest 7000. Use 2000 for VGA 480p. 1200k for Nikon D90 (720p 50mm lens)
+STABILIZEOPTIONS=${STABILIZEOPTIONS:-}
+TRANSFORMOPTIONS=${TRANSFORMOPTIONS:-:optzoom=1}
+AUDIOOPTIONS=${AUDIOOPTIONS:--c:a libmp3lame -aq 4}
+EXTRAOPTIONS=${EXTRAOPTIONS:-}
+FFMPEGOPTIONS=${FFMPEGOPTIONS:-}
+DEVICE=${DEVICE:-$(ffprobe "$FILE" 2>&1 | grep model | sed 's/.*://')}
+
+#TODO start with DEVICE=test and echo $DEVICE
+#echo $DEVICE;exit
+
+if [ "$DEVICE" != '' ]; then
+	echo "Looking for specific options for device $DEVICE".
+	case $DEVICE in
+		"Nexus S" )
+			echo -e "Found! ---"
+		echo "Enabling EXTRAOPTIONS=\"--export_fps 30\" # otherwise, transcode encodes @random fps!"
+		EXTRAOPTIONS="--export_fps 30" # otherwise, transcode encodes @random fps!
+		NOAUDIO=",null" # Don't output audio. It has ticks.
+		;;
+		" NIKON D90" )
+			echo "Selecting HIGH profile to preserve colors of $DEVICE."
+			#EXTRAOPTIONS="$EXTRAOPTIONS -profil:v high422"
+			echo "pix_fmt for Nikon D90"
+			FIRSTPASS="$EXTRAOPTIONS -pix_fmt yuv420p -ab 48k"
+			EXTRAOPTIONS="$EXTRAOPTIONS -profile:v main -pix_fmt yuv420p -s hd480 -ab 48k" 
+			echo "Audio for Nikon D90"
+			AUDIOOPTIONS="-c:a libmp3lame -ab 48k"
+			echo "shakiness:8 for D90"
+			STABILIZEOPTIONS=":shakiness=8:accuracy=15"
+		;;
+		*)
+			echo "Options for $DEVICE not found."
+		;;
+	esac
+fi
+
+if [ "$FILE" == '' ] || [ "$CRF" == '' ]; then
+	echo "Hey man, gimme a file to work!"
+	echo "$0 FILE CRF(23-18, 18 is best)"
+	echo "OPTIONS are VBITRATE, STABILIZEOPTIONS, TRANSFORMOPTIONS, EXTRAOPTIONS, FFMPEGOPTIONS"
+	echo "If you have shaky try STABILIZEOPTIONS=\":shakiness=8\". Default is 5."
+	echo "By the way. Documentation for options is here."
+	echo "http://public.hronopik.de/vid.stab/features.php?lang=en"
+	exit 1
+fi
+
+if [ ! -e "$FILE" ]; then
+	echo "File "$FILE" not found. Exiting."
+	exit 1
+fi
+
+if [ "$STABILIZEOPTIONS" != "" ]; then
+	echo "STABILIZEOPTIONS: $STABILIZEOPTIONS detected."
+	echo "Removing trf file to reset the data."
+#	rm "$FILE".trf
+fi
+
+function bugs (){
+if [ "$DEVICE" = "Nexus S" ]; then
+	echo "Using different options for $DEVICE."
+	# encode with no audio (transcode creates audio with clicks)
+	#transcode -J transform$TRANSFORMOPTIONS -i "$FILE" -w $VBITRATE -y xvid$NOAUDIO $EXTRAOPTIONS -o "$FILE".stabilize.$STABILIZEOPTIONS$TRANSFORMOPTIONS.avi
+	# encode only audio with 40k
+	echo ffmpeg -loglevel 24 -i "$FILE" -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS -pix_fmt yuv420p -ab 40k -acodec libmp3lame -vb $VBITRATE -y "$FILE".mp4
+	ffmpeg -loglevel 24 -i "$FILE" -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS -pix_fmt yuv420p -ab 40k -acodec libmp3lame -vb $VBITRATE -y "$FILE".mp4
+exit
+fi
+}
+
+if [ -e "$FILE.trf" ]; then
+	echo "--> trf (transform) file: ($FILE.trf) found. Executing only second pass. <--"
+	sleep 2
+	bugs # if we encode a nexus_s video then encode it with only 40k with ffmpeg and merge it with avimerge.
+	# create the video
+	echo ffmpeg -loglevel 24 -i "$FILE" -c:v libx264 -preset veryfast -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS,unsharp=5:5:0.8:3:3:0.4 $EXTRAOPTIONS $AUDIOOPTIONS -crf $CRF -y "$FILE".mp4
+	ffmpeg -loglevel 24 -i "$FILE" -c:v libx264 -preset veryfast -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS,unsharp=5:5:0.8:3:3:0.4 $EXTRAOPTIONS $AUDIOOPTIONS -crf $CRF -y "$FILE".mp4
+	echo "ffmpeg -loglevel 24 -i "$FILE" -c:v libx264 -preset veryfast -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS,unsharp=5:5:0.8:3:3:0.4 $EXTRAOPTIONS $AUDIOOPTIONS -crf $CRF -y "$FILE".mp4"
+	# OLD OK ffmpeg -loglevel 24 -i "$FILE" -c:v libx264 -preset veryfast -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS,unsharp=5:5:0.8:3:3:0.4 $EXTRAOPTIONS $AUDIOOPTIONS -crf $CRF -y "$FILE".mp4
+else
+	bugs
+	# create trf file
+	echo "ffmpeg -loglevel 24 -i "$FILE" -vf vidstabdetect=result="$FILE".trf$STABILIZEOPTIONS $FIRSTPASS -f null -an -"
+	ffmpeg -loglevel 24 -i "$FILE" -vf vidstabdetect=result="$FILE".trf$STABILIZEOPTIONS $FIRSTPASS -f null -an -
+	# OLD OK	ffmpeg -i "$FILE" -vf vidstabdetect=result="$FILE".trf$STABILIZEOPTIONS $EXTRAOPTIONS -pix_fmt yuv420p -f null -
+	# create the video
+	echo "ffmpeg -loglevel 24 -i "$FILE" $FFMPEGOPTIONS -c:v libx264 -preset veryfast -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS,unsharp=5:5:0.8:3:3:0.4 $EXTRAOPTIONS $AUDIOOPTIONS -crf $CRF -y "$FILE".mp4"
+	ffmpeg -loglevel 24 -i "$FILE" $FFMPEGOPTIONS -c:v libx264 -preset veryfast -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS,unsharp=5:5:0.8:3:3:0.4 $EXTRAOPTIONS $AUDIOOPTIONS -crf $CRF -y "$FILE".mp4
+fi
