@@ -1,4 +1,5 @@
 #!/bin/bash
+# TODO: we have stalled file in / ! (root filesystem)
 
 BITS=$(uname -m)
 if [ "$BITS" == "x86_64" ]; then
