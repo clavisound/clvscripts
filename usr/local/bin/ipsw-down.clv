@@ -1,0 +1,51 @@
+#!/bin/bash
+
+PHONE=$1
+BUILDID=$2
+TMP=/mnt/tempfs
+
+if [ "$1" == '' ]; then
+	echo "Choosing iphone 6,1 (5S)"
+	echo -e "\niPhone 6:iPhone7,2\nSE:iPhone8,4\n6s:iPhone8,1\n7:iPhone9,3"
+	echo -e "\nCTRL+C to cancel"
+	sleep 2
+	PHONE="iPhone6,1"
+fi
+
+if [ "$BUILDID" != '' ]; then
+	curl -s -k https://api.ipsw.me/v4/device/$PHONE?type=ipsw | sed -e 's+{+\n+g'> $TMP/$PHONE.ipsw.lines.list
+	grep $BUILDID $TMP/$PHONE.ipsw.lines.list
+	SHA1SUM=$(grep $BUILDID $TMP/$PHONE.ipsw.lines.list | gawk -F"\"" ' { print $16 } ')
+	URL=$(grep $BUILDID $TMP/$PHONE.ipsw.lines.list | gawk -F"\"" ' { print $26 } ')
+	echo Downloading...
+	curl -s --limit-rate 200k $URL
+	exit
+fi
+
+curl -s -k https://api.ipsw.me/v4/device/$PHONE?type=ipsw > $TMP/$PHONE.ipsw.list
+cat $TMP/$PHONE.ipsw.list | sed -e 's+{+{\n+g' > $TMP/$PHONE.ipsw.lines.list
+
+NAME=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $4 } ')
+IOS=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $30 } ')
+BUILD=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $34 } ')
+SHA1SUM=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $38 } ')
+URL=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $48 } ')
+echo "found: $NAME, $IOS, $BUILD, $SHA1SUM, $URL"
+
+echo -e "\nCheck for variations in iOS: $IOS"
+grep $IOS $TMP/$PHONE.ipsw.lines.list
+exit
+
+# NO NEED
+#curl -s -k https://api.ipsw.me/v4/devices?keysOnly=true > $TMP/ipsw.list
+#exit
+#cat $TMP/ipsw.list | sed -e 's+{+{\n+g' -e 's+"++g'| grep $PHONE > ipsw.$PHONE.list
+
+#NAME=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $4 } ')
+#CODENAME=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $8 } ')
+#BOARD=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $12 } ')
+#PLATFORM=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $16 } ')
+
+# DOWNLOAD
+echo Downloading...
+curl -s --limit-rate 200k $URL
