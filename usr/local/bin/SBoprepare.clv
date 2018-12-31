@@ -114,7 +114,7 @@ APPURL=$(cat ${SOURCES}/${APPSOURCE}.link)
 sed -i "s/appname/$PRGNAM/g" ./slack-desc ./$PRGNAM.*
 sed -i "s/VERSION:-1.4.1/VERSION:-$VERSION/g" ./$PRGNAM.SlackBuild
 sed -i "s/1.4.1/$VERSION/g" ./$PRGNAM.info
-sed -i "s/MD5SUM=\"\"/MD5SUM=\"${MD5SUMPRG}\"/g" ./$PRGNAM.info
+sed -i "s/MD5SUM65=\"\"/MD5SUM65=\"${MD5SUMPRG}\"/g" ./$PRGNAM.info
 sed -i "s+DOWNLOAD=.*+DOWNLOAD=\"${APPURL}\"+g" ./$PRGNAM.info
 
 # in case of bz2 substitude tar -xzvf *.tar.gz -> tar -xjvf *.tar.bz2
