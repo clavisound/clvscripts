@@ -1,19 +1,30 @@
 #!/bin/bash
+# Send sms via console with provider: omnivoice.eu
 
 function print_help()
 {
-	echo "Create a file /etc/omnivoice-sms.conf with values:"
+	echo "Create a file /etc/omnivoice-sms.conf or ~/.config/omnivoice-sms.conf with values:"
 	echo "UNAME=username_from_omnivoice"
 	echo "PWORD=password_from_omnivoice"
 	echo "CID=Your_Caller_ID"
 }
 
-. /etc/omnivoice-sms.conf
+function check_conf()
+{
 if [ $? == 1 ]; then
 	echo "Configuration error!"
 	print_help
 	exit 1
 fi
+}
+
+for FILE in ~/.config/omnivoice-sms.conf /etc/omnivoice-sms.conf
+do
+	if [ -r $FILE ]; then
+		. $FILE
+	fi
+done
+
 
 if [ "$UNAME" == "" ] || [ "$PWORD" == "" ] || [ "$CID" == "" ]; then
 	print_help
