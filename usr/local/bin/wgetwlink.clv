@@ -20,6 +20,16 @@ if [ "$DOMAIN" == "github.com" ]; then
 	FILENAME=$(echo $URL | sed -e 's/.*\///g')
 fi
 
+if [ "$DOMAIN" == "sourceforge.net" ]; then
+	echo "sourceforge address detected."
+	FILENAME=$(echo $URL | sed -e 's/.*\///g')
+	PRGNAME=$(echo $1 | cut -d'/' -f5)
+	VERSION=$(echo $FILENAME | sed -e "s+$PRGNAME-++" -e 's+-.*++')
+	URL=$(echo $1 | sed -e "s+archive/.*+archive/v$VERSION/$PRGNAME-$VERSION.tar.gz+")
+	echo -e "VER: $VERSION\n\nNAME: $PRGNAME\n\nURL: $URL\n\nFILE $FILENAME"
+	exit
+fi
+
 wget "$URL" -O "$FILENAME"
 
 # keep only last url
