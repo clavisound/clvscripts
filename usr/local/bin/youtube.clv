@@ -1,21 +1,27 @@
 #!/bin/bash
 # Requires latest youtube-dl, ffmpeg
 
-LIMITRATE=${LIMITRATE:-"-r 100k"}
+LIMITRATE=${LIMITRATE:-"-r 150k"}
 
-youtube-dl -f 135 $LIMITRATE -k $1
-youtube-dl -f 171 $LIMITRATE -k $1
+#youtube-dl -f 135 $LIMITRATE -k $1
+#youtube-dl -f 171 $LIMITRATE -k $1
 
 LINK=$(echo $1 | sed 's/.*v=//')
-AUDIO=$(find ./ -name \*$LINK\*.webm | sed -f /etc/escapechars.sed)
-if [ "$AUDIO" == "" ]; then # sometimes the audiofile is m4a
-	AUDIO=$(find ./ -name \*$LINK\*.m4a | sed -f /etc/escapechars.sed)
-fi
+#FILE=$(find ./ -name \*$LINK\* | sed -e 's/\.f...*\.webm//g' -e 's+\.web++' | sed -f /etc/escapechars.sed | head -1)
+FILE=$(find ./ -name \*$LINK\* | tail -1 | sed -e 's+\./++' -e 's+\.mp4++g' -e 's+\.web++' | sed -f /etc/escapechars.sed)
 
-VIDEO=$(find ./ -name \*$LINK\*.f\*webm | sed -f /etc/escapechars.sed)
-FILE=$(find ./ -name \*$LINK\* | sed -e 's/\.f...*\.webm//g' | sed -f /etc/escapechars.sed | head -1)
+# not sure for those values, but it doesn't matter
+VIDEO=$FILE.webm
+AUDIO=$FILE.mp4
 
-ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -vcodec copy \
-	-y "$FILE".merged.mp4
-echo ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -vcodec copy \
-	-y "$FILE".merged.mp4
+#AUDIO=$(find ./ -name \*$LINK\*.webm | sed -f /etc/escapechars.sed)
+#if [ "$AUDIO" == "" ]; then # sometimes the audiofile is m4a
+#	AUDIO=$(find ./ -name \*$LINK\*.m4a | sed -f /etc/escapechars.sed)
+#fi
+
+#VIDEO=$(find ./ -name \*$LINK\*.f\*webm | sed -f /etc/escapechars.sed)
+
+# I don't need lame
+# ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -aq 4 -vcodec copy \
+ffmpeg -i "$AUDIO" -i "$VIDEO" -c copy -y "$FILE".merged.mp4
+echo ffmpeg -i "$AUDIO" -i "$VIDEO" -c copy -y "$FILE".merged.mp4
