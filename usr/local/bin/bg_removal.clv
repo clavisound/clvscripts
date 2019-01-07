@@ -1,0 +1,14 @@
+#!/bin/bash
+# This script creates some minor problems, use it as a start.
+# commands stolen from https://stackoverflow.com/questions/9155377/set-transparent-background-using-imagemagick-and-commandline-prompt#
+# user fmw42
+
+FILE=($basename $1)
+OUTFILE=$2
+
+if [ "$2" == "" ]; then
+	echo "Usage $0 INFILE OUTFILE"
+fi
+
+GBREMOVE="-fuzz 25% -fill none -draw "matte 0,0 floodfill" -channel alpha -blur 0x1 -level 50x100% +channel -background transparent -flatten"
+convert $BGREMOVE $FILE $OUTFILE

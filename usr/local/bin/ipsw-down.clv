@@ -17,8 +17,8 @@ if [ "$BUILDID" != '' ]; then
 	grep $BUILDID $TMP/$PHONE.ipsw.lines.list
 	SHA1SUM=$(grep $BUILDID $TMP/$PHONE.ipsw.lines.list | gawk -F"\"" ' { print $16 } ')
 	URL=$(grep $BUILDID $TMP/$PHONE.ipsw.lines.list | gawk -F"\"" ' { print $26 } ')
-	echo Downloading...
-	curl -s --limit-rate 200k $URL
+	echo Downloading... $URL
+	wget -c --limit-rate 200k $URL
 	exit
 fi
 

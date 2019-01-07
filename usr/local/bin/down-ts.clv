@@ -11,9 +11,14 @@ if [ $? == 1 ]; then
 	fi
 	FILE=$(echo -n $2__; date +%d%m%y)
 	
-	curl -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
-	curl -k --limit-rate 100k "${CURL}_[10-99].ts" -o "${FILE}__0#1.ts"
-	curl -k --limit-rate 100k "${CURL}_[100-146].ts" -o "${FILE}__#1.ts"
+	echo curl -s -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
+	curl -s -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
+
+	echo curl -s -k --limit-rate 100k "${CURL}_[10-99].ts" -o "${FILE}__0#1.ts"
+	curl -s -k --limit-rate 100k "${CURL}_[10-99].ts" -o "${FILE}__0#1.ts"
+	
+	echo curl -s -k --limit-rate 100k "${CURL}_[100-146].ts" -o "${FILE}__#1.ts"
+	curl -s -k --limit-rate 100k "${CURL}_[100-146].ts" -o "${FILE}__#1.ts"
 else
 	# if ends with m3u8 then this
 #	FILE=$(echo "$1" | sed -e 's+.*paidikes-seires/.*/20+20+' -e 's+.mp4/.*++'g)
@@ -25,8 +30,13 @@ else
 	CURLLAST=$(grep _....ts temp.ts.list | sort -n | tail -1 | sed -e 's/.*_//g' -e 's/_....ts/_/g' -e 's/.ts//g')
 	CURL=$(echo ${CURLCLEAN}${CURLFIRST} | sed 's/_..ts//')
 	
-	curl -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
-	curl -k --limit-rate 100k "${CURL}_[10-99].ts" -o "${FILE}__0#1.ts"
-	curl -k --limit-rate 100k "${CURL}_[100-${CURLLAST}].ts" -o "${FILE}__#1.ts"
+	echo curl -s -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
+	curl -s -k --limit-rate 100k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
+	
+	echo curl -s -k --limit-rate 100k "${CURL}_[10-99].ts" -o "${FILE}__0#1.ts"
+	curl -s -k --limit-rate 100k "${CURL}_[10-99].ts" -o "${FILE}__0#1.ts"
+
+	echo curl -s -k --limit-rate 100k "${CURL}_[100-${CURLLAST}].ts" -o "${FILE}__#1.ts"
+	curl -s -k --limit-rate 100k "${CURL}_[100-${CURLLAST}].ts" -o "${FILE}__#1.ts"
 fi
 

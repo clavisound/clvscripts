@@ -22,12 +22,12 @@ fi
 
 for CROP in 416 432 544 576
 do
-	echo "ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP".%03d.jpg"
+	echo "ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP"."$MINUTEJPG".%03d.jpg"
 	echo
 	# BUG?
-       	ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP".%03d.jpg
-       	echo "ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP".%03d.jpg"
-	# ffmpeg -i $FILE -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -vf crop=720:$CROP "$FILE"."$CROP".%03d.jpg
+       	ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP"."$MINUTEJPG".%03d.jpg
+       	echo "ffmpeg -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -i $FILE -vf crop=720:$CROP "$FILE"."$CROP"."$MINUTEJPG".%03d.jpg"
+	# ffmpeg -i $FILE -ss 00:"$MINUTEJPG":"$SECONDJPG".00 -t 00:00:00.01 -vf crop=720:$CROP "$FILE"."$CROP"."$MINUTEJPG".%03d.jpg
 	# I can't create only one frame. Delete the first frame
 	rm "$FILE"."$CROP".002.jpg
 done
