@@ -3,8 +3,8 @@
 
 LIMITRATE=${LIMITRATE:-"-r 150k"}
 
-#youtube-dl -f 135 $LIMITRATE -k $1
-#youtube-dl -f 171 $LIMITRATE -k $1
+youtube-dl -f 135 $LIMITRATE -k $1
+youtube-dl -f 171 $LIMITRATE -k $1
 
 LINK=$(echo $1 | sed 's/.*v=//')
 #FILE=$(find ./ -name \*$LINK\* | sed -e 's/\.f...*\.webm//g' -e 's+\.web++' | sed -f /etc/escapechars.sed | head -1)
