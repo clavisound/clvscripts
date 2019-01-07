@@ -10,5 +10,6 @@ if [ "$2" == "" ]; then
 	echo "Usage $0 INFILE OUTFILE"
 fi
 
-GBREMOVE="-fuzz 25% -fill none -draw "matte 0,0 floodfill" -channel alpha -blur 0x1 -level 50x100% +channel -background transparent -flatten"
+BGREMOVE="-fuzz 25% -fill none -draw \"matte 0,0 floodfill\" -channel alpha -blur 0x1 -level 50x100% +channel -background transparent -flatten"
+echo convert $BGREMOVE $FILE $OUTFILE
 convert $BGREMOVE $FILE $OUTFILE
