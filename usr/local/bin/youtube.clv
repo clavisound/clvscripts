@@ -8,7 +8,7 @@ youtube-dl -f 171 $LIMITRATE -k $1
 
 LINK=$(echo $1 | sed 's/.*v=//')
 #FILE=$(find ./ -name \*$LINK\* | sed -e 's/\.f...*\.webm//g' -e 's+\.web++' | sed -f /etc/escapechars.sed | head -1)
-FILE=$(find ./ -name \*$LINK\* | tail -1 | sed -e 's+\./++' -e 's+\.mp4++g' -e 's+\.web++' | sed -f /etc/escapechars.sed)
+FILE=$(find ./ -name \*$LINK.webm | tail -1 | sed -e 's+\./++' -e 's+\.webm++' | sed -f /etc/escapechars.sed)
 
 # not sure for those values, but it doesn't matter
 VIDEO=$FILE.webm
