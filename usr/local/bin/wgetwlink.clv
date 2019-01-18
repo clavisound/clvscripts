@@ -13,11 +13,16 @@ fi
 DOMAIN=$(echo $1 | cut -d'/' -f3)
 if [ "$DOMAIN" == "github.com" ]; then
 	# chance URL to proper filename
-	echo "TODO: github not properly supported!"
-	VERSION=$(echo $1 | sed -e 's+.*archive/v++' -e 's+.tar.*++')
+	# WEB  URL: https://github.com/Dolibarr/dolibarr/archive/8.0.4.tar.gz
+	# REAL URL: https://codeload.github.com/Dolibarr/dolibarr/tar.gz/8.0.4
+	echo "github experimental support"
+	sleep 2
+	VERSION=$(echo $1 | sed -e 's+.*archive/v++' -e 's+.*archive/++' -e 's+.tar.*++')
 	PRGNAME=$(echo $1 | cut -d'/' -f5)
-	URL=$(echo $1 | sed -e "s+archive/.*+archive/v$VERSION/$PRGNAME-$VERSION.tar.gz+")
-	FILENAME=$(echo $URL | sed -e 's/.*\///g')
+	PROJNAME=$(echo $1 | cut -d'/' -f4)
+	FILETYPE=$(echo $1 | sed -e 's+.*\.tar+tar+')
+	URL="https://codeload.github.com/$PROJNAME/$PRGNAME/$FILETYPE/$VERSION"
+	FILENAME=$(echo $1 | sed -e "s+archive/.*+archive/v$VERSION/$PRGNAME-$VERSION.tar.gz+" -e 's/.*\///g')
 fi
 
 if [ "$DOMAIN" == "sourceforge.net" ]; then
