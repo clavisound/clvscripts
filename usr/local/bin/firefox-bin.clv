@@ -1,0 +1,24 @@
+#!/bin/bash
+# Open binary firefox with custom home folder
+# script wants firefox istanlled in /opt/ folder
+
+VERSION=$1
+
+if [ "$VERSION" == "" ]; then
+	VERSIONS=$(ls -1 /opt/ | sed 's+firefox-+: +')
+	echo choose version $VERSIONS.
+	read VERSION
+fi
+
+if [ -e /opt/firefox-$VERSION ]; then
+	DIR=$HOME/.config/firefox-$VERSION
+	mkdir -p $DIR
+	export HOME=$DIR
+else
+	echo "Error: firefox-$VERSION, not found"
+	exit 1
+fi
+
+echo 3 secs to abort temp home for firefox-$VERSION: $HOME; sleep 3
+
+/opt/firefox-$VERSION/firefox
