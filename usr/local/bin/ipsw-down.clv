@@ -5,8 +5,8 @@ BUILDID=$2
 TMP=/mnt/tempfs
 
 if [ "$1" == '' ]; then
-	echo "Choosing iphone 6,1 (5S)"
-	echo -e "\niPhone 6:iPhone7,2\nSE:iPhone8,4\n6s:iPhone8,1\n7:iPhone9,3"
+	echo "Choosing iPhone6,1 (5S)"
+	echo -e "\nFor iPhone 6 type: iPhone7,2\nSE: iPhone8,4\n6s: iPhone8,1\n7: iPhone9,3"
 	echo -e "\nCTRL+C to cancel"
 	sleep 2
 	PHONE="iPhone6,1"
@@ -34,7 +34,6 @@ echo "found: $NAME, $IOS, $BUILD, $SHA1SUM, $URL"
 
 echo -e "\nCheck for variations in iOS: $IOS"
 grep $IOS $TMP/$PHONE.ipsw.lines.list
-exit
 
 # NO NEED
 #curl -s -k https://api.ipsw.me/v4/devices?keysOnly=true > $TMP/ipsw.list
@@ -45,7 +44,8 @@ exit
 #CODENAME=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $8 } ')
 #BOARD=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $12 } ')
 #PLATFORM=$(cat $TMP/$PHONE.ipsw.list | gawk -F"\"" ' { print $16 } ')
+FILENAME=$(echo $URL | sed 's+.*/++' )
 
 # DOWNLOAD
-echo Downloading...
-curl -s --limit-rate 200k $URL
+echo downloading: $URL with filename: $FILENAME
+curl -s --limit-rate 200k $URL -o $FILENAME
