@@ -5,7 +5,7 @@
 VERSION=$1
 
 if [ "$VERSION" == "" ]; then
-	VERSIONS=$(ls -1 /opt/ | sed 's+firefox-+: +')
+	VERSIONS=$(ls -1 /opt/ | grep firefox | sed 's+firefox-+: +')
 	echo choose version $VERSIONS.
 	read VERSION
 fi
