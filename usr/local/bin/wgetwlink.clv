@@ -39,9 +39,11 @@ fi
 wget "$URL" -O "$FILENAME"
 
 # keep only last url
-FILE_AND_PATH=$(echo "$URL" | sed -e 's+.*\/++')
+FILE_AND_PATH=$(echo "$1" | sed -e 's+.*\/++')
 if [ "$FILE_AND_PATH" == "" ]; then
 	echo "URL is bad (probable ends with /), aborting"
+	exit 1
 else
-	echo "$URL" > "$FILE_AND_PATH".link
+	#echo "$URL" > "$FILE_AND_PATH".link
+	echo "$URL" > "$FILENAME".link
 fi
