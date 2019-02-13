@@ -29,7 +29,7 @@ done
 if [ -r "$FILE" ]; then
 	WAV="$FILE"
 	flacme
-#	nice lame -V 3 --vbr-new "$WAV"
+	lame -V 3 --vbr-new "$WAV"
 else
 	cdwav
 fi
