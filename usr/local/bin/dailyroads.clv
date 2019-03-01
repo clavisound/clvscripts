@@ -1,0 +1,10 @@
+#!/bin/bash
+FILE=$1
+
+if [ $1 == '' ]; then
+	echo "This script cleans DailyRoads markup and time for privacy reasons."
+	echo "Usage: $0 file."
+	exit 1
+fi
+
+cat $FILE | sed -e '/DailyRoads.*/d' -e 's+km/h.*+km/h+' > $FILE.clean.srt
