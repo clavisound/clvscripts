@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# random secs
+SECS=$(( ( RANDOM % 3600 )  + 1 ))
+echo "SECS: $SECS"
+sleep $SECS
+
+# do the job
+PYTHON_INSTALL_LAYOUT="" HOME=/root /usr/local/bin/certbot-auto --debug renew --post-hook /usr/local/sbin/restart-ssl-services.aws.priv
