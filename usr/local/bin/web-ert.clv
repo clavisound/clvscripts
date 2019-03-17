@@ -15,6 +15,8 @@ elif [ "$3" == "2" ]; then
 elif [ "$3" == "3" ]; then
 	# TODO
 	PARTURL="ELB7cKTx5ig"
+elif [ "$3" == "SPORTS" ]; then
+	PARTURL="MP8Htwny-T4"
 elif [ "$3" == "PLAY" ]; then
 	# PLAY
 	PARTURL="bVREmAZt6i0"

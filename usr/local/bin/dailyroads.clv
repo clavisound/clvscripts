@@ -3,8 +3,11 @@ FILE=$1
 
 if [ $1 == '' ]; then
 	echo "This script cleans DailyRoads markup and time for privacy reasons."
-	echo "Usage: $0 file."
+	echo "File with noAD removes only ad, the file speedLOC, removes ad and time."
+	echo "Usage: $0 file"
 	exit 1
 fi
 
-cat $FILE | sed -e '/DailyRoads.*/d' -e 's+km/h.*+km/h+' > $FILE.clean.srt
+cat $FILE | sed -e '/DailyRoads.*/d' > $FILE.noAD.srt
+cat $FILE | sed -e '/DailyRoads.*/d' -e 's+km/h.*+km/h+' > $FILE.speedLOC.srt
+
