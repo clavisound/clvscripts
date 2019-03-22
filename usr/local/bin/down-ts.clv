@@ -1,10 +1,11 @@
 #!/bin/bash
 
-CURL=$(echo $1 | sed -f /etc/url-conv.sed 's/_..ts//')
+CURL=$(echo "$1" | sed -f /etc/url-conv.sed)
+CURL=$(echo $CURL | sed 's/_..ts//')
 KBYTES=$2
 
-if [ $KBYTES == '' ]; then
-	KBYTES=100k
+if [ "$KBYTES" = '' ]; then
+	KBYTES="100"
 fi
 
 # if not ends with m3u8, then this
@@ -27,9 +28,9 @@ if [ $? == 1 ]; then
 else
 	# if ends with m3u8 then this
 #	FILE=$(echo "$1" | sed -e 's+.*paidikes-seires/.*/20+20+' -e 's+.mp4/.*++'g)
-	FILE=$(echo "$1" | sed -e 's+.*/20+20+' -e 's+.mp4/.*++'g)
+	FILE=$(echo "$CURL" | sed -e 's+.*/20+20+' -e 's+.mp4/.*++'g)
 	CHUNK=$(curl -s -k "$CURL" | grep m3u8)
-	CURLCLEAN=$(echo $1 | sed 's/playlist.*//')
+	CURLCLEAN=$(echo $CURL | sed 's/playlist.*//')
 	curl -s -k "${CURLCLEAN}${CHUNK}" > temp.$FILE.ts.list
 	CURLFIRST=$(grep _..ts temp.$FILE.ts.list | head -1)
 	CURLLAST=$(grep _....ts temp.$FILE.ts.list | sort -n | tail -1 | sed -e 's/.*_//g' -e 's/_....ts/_/g' -e 's/.ts//g')
