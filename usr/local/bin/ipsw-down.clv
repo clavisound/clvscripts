@@ -48,4 +48,5 @@ FILENAME=$(echo $URL | sed 's+.*/++' )
 
 # DOWNLOAD
 echo downloading: $URL with filename: $FILENAME
+echo start in 3 secs; sleep 3
 curl -s --limit-rate 200k $URL -o $FILENAME
