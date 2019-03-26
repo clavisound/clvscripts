@@ -8,7 +8,11 @@ sleep 3
 MESSAGE=$(ideviceinfo --simple | grep DeviceName)
 MESSAGE+=","
 MESSAGE+=`date -R`
-MESSAGE+=","
-MESSAGE+=$(idevicediagnostics diagnostics GasGauge | grep integer | sed -e 's+.*<integer>+,+' -e 's+</int.*+,+')
+for i in $(idevicediagnostics diagnostics GasGauge | grep integer | sed -e 's+.*<integer>+,+' -e 's+</int.*++')
+do
+	MESSAGE+=$i
+done
 
 echo -e $MESSAGE >> $FILE
+# DEBUG
+# echo -e $MESSAGE
