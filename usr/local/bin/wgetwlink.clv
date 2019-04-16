@@ -16,6 +16,9 @@ if [ "$DOMAIN" == "github.com" ]; then
 	# WEB  URL: https://github.com/Dolibarr/dolibarr/archive/8.0.4.tar.gz
 	# REAL URL: https://codeload.github.com/Dolibarr/dolibarr/tar.gz/8.0.4
 	echo "github experimental support"
+	# OK URL https://codeload.github.com/dotproject/dotProject/zip/v2.1.9
+	# But I FOUND:
+	# https://codeload.github.com/dotproject/dotProject/https://github.com/dotproject/dotProject/archive/v2.1.9.zip/v2.1.9.zip
 	sleep 2
 	VERSION=$(echo $1 | sed -e 's+.*archive/v++' -e 's+.*archive/++' -e 's+.tar.*++')
 	PRGNAME=$(echo $1 | cut -d'/' -f5)
