@@ -1,0 +1,179 @@
+#!/bin/bash
+TARGET=$1
+MOUNTPOINT=/mnt/$TARGET
+FLASH=$2
+MKFS=$3
+
+# TODO: find /usr/share/ -size +10M -size -20M -exec ls -lh {} \; | head -1
+BIGFILE=/usr/share/fonts/TTF/sazanami-mincho.ttf
+SOURCEDIR1=/usr/src/linux/Documentation
+
+if [ "$TARGET" == '' ] || [ "$FLASH" == '' ]; then
+	echo "You need a properly *aligned* partitioned flash - or ssd - disk"
+        echo "with 8 paritions."
+	echo
+	echo "Usage: $0 bench /dev/sdd (bench=/mnt/bench)"
+	echo "Usage: $0 bench /dev/sdd -mkfs <- not implemented yet"
+	exit 1
+fi
+
+if [ "$MKFS" == "-mkfs" ]; then
+	grep -q $FLASH /etc/mtab
+	if [ $? == 0 ]; then
+		echo "Error: $FLASH is mounted. It's not a removable device?"
+		exit 1
+	fi
+	echo "I will format / erase $FLASH"
+	fdisk -l $FLASH
+	if [ $? == 1 ]; then
+		echo "Error: $FLASH not found."
+		exit 1
+	fi
+	echo "You have 10 seconds to cancel (press ctrl +c )"
+	sleep 10
+	echo "I create partitions and filesystems aligned to 8MiB"
+	echo "Not implemented yet!"
+	parted -s $FLASH mktable gpt
+	parted -s $FLASH unit MB mkpart p fat32 8 504 # 1
+	parted -s $FLASH unit MB mkpart p ext3 512 1008 # 2
+	parted -s $FLASH unit MB mkpart p ext3 1024 1520 # 3
+	parted -s $FLASH unit MB mkpart p btrfs 1536 2032 # 4
+	parted -s $FLASH unit MB mkpart p btrfs 2048 2544 # 5
+	parted -s $FLASH unit MB mkpart p ext4 2560 3056 # 6
+	parted -s $FLASH unit MB mkpart p ext4 3072 3568 # 7
+	parted -s $FLASH unit MB mkpart p ext4 3584 4080 # 8
+	parted -s $FLASH unit MB mkpart p ext4 4096 4592 # 9
+	parted -s $FLASH unit MB p
+	sleep 3
+
+	#dd if=/dev/zero of=$FLASH bs=512 count=1
+	#sync
+	#parted -s $FLASH mktable msdos
+	#parted -s $FLASH unit MB mkpart p fat32 8 504 # 1
+	#parted -s $FLASH unit MB mkpart p ext3 512 1008 # 2
+	#parted -s $FLASH unit MB mkpart p ext3 1024 1520 # 3
+	#parted -s $FLASH unit MB mkpart e 1528 4000 # 4
+	#parted -s $FLASH unit MB mkpart l btrfs 1536 2032 # 5
+	#parted -s $FLASH unit MB mkpart l btrfs 2048 2544 # 6
+	#parted -s $FLASH unit MB mkpart l ext4 2560 3056 # 7
+	#parted -s $FLASH unit MB mkpart l ext4 3072 3568 # 8
+	#parted -s $FLASH unit MB mkpart l ext4 3584 4080 # 9
+	#parted -s $FLASH unit MB p
+	echo "mkfs.fat"
+	mkfs.fat -n fat$TARGET "$FLASH"1
+	echo "mkfs ext default"
+	mkfs.ext3 -F -L ext3default$TARGET "$FLASH"2
+	echo "mkfs ext3 -b 4096 -E stride=128 -E stripe-width=128 -m 0"
+	mkfs.ext3 -F -b 4096 -E stride=128 -E stripe-width=128 -m 0 -L ext3ssd$TARGET "$FLASH"3
+	echo "mkfs btrfs default"
+	mkfs.btrfs -f -m single -d single -L btrfs$TARGET "$FLASH"4
+	echo "mkfs btrfs zstd (compression)"
+	mkfs.btrfs -f -m single -d single -L btrfs-zstd$TARGET "$FLASH"5
+	echo "mkfs ext4 default"
+	mkfs.ext4 -F -L ext4$TARGET  "$FLASH"6
+	echo "mkfs ext4 -b 4096 -E stride=128 -E stripe-width=128 -m 0"
+	mkfs.ext4 -F -b 4096 -E stride=128 -E stripe-width=128 -m 0 -L ext4ssd$TARGET  "$FLASH"7
+	echo "mkfs f2fs"
+	/usr/sbin/mkfs.f2fs -l f2fs$TARGET  "$FLASH"8
+fi
+
+mkdir -p $MOUNTPOINT/{fat32,ext3,ext3ssd,btrfs,btrfs-zstd,ext4,ext4ssd,f2fs}
+
+# re-mount partitions (add ext4) to get rid the caches
+function mount_flash {
+cd $MOUNTPOINT
+# put it first... if big partitions, kernel fails to see the partition
+mount "$FLASH"1 fat32/
+mount "$FLASH"2 -o commit=6000 ext3
+mount "$FLASH"3 -o commit=6000 ext3ssd/
+mount -t btrfs -o ssd,ssd_spread,commit=6000 "$FLASH"4 btrfs/
+mount -t btrfs -o compress=zstd,ssd,ssd_spread,commit=6000 "$FLASH"5 btrfs-zstd/
+mount -t ext4 -o commit=6000 "$FLASH"6 ext4
+mount -t ext4 -o commit=6000 "$FLASH"7 ext4ssd/
+mount -t f2fs "$FLASH"8 f2fs/
+}
+
+function large_copy {
+# start the cp bench
+echo "Filesystem large copy performance" >> ~/flash.bench.$TARGET
+sync
+echo "caching of $BIGFILE..."
+cat $BIGFILE > /dev/null
+for i in fat32 btrfs btrfs-zstd ext4 ext4ssd btrfs ext3 ext3ssd f2fs 
+	do 
+	TIMESTART=`date +%s`
+	time dd count=26 bs=4096k if=$BIGFILE of=$MOUNTPOINT/$i/test conv=fsync
+	sync
+	TIMEEND=`date +%s`
+	TIMEDIFF=`expr $TIMEEND - $TIMESTART`
+	echo "Filesystem: $i $TIMEDIFF seconds" >> ~/flash.bench.$TARGET
+	echo "Filesystem: $i $TIMEDIFF seconds"
+done
+echo "Disk usage after large file" >> ~/flash.bench.$TARGET
+df -h $MOUNTPOINT/* >> ~/flash.bench.$TARGET
+}
+
+function copy_small {
+# start the small files bench
+echo "Filesystem many small copy performance" >> ~/flash.bench.$TARGET
+sync
+	echo "caching of $SOURCEDIR1 starting..."
+	find $SOURCEDIR1 -type f -exec cat {} > /dev/null \;
+	echo "ended.. starting copying.."
+for i in fat32 btrfs btrfs-zstd ext4 ext4ssd btrfs ext3 ext3ssd f2fs 
+	do
+	TIMESTART=`date +%s`
+	time cp -R $SOURCEDIR1 $MOUNTPOINT/$i
+	sync
+	TIMEEND=`date +%s`
+	TIMEDIFF=`expr $TIMEEND - $TIMESTART`
+	echo "Filesystem: $i $TIMEDIFF seconds" >> ~/flash.bench.$TARGET
+	echo "Filesystem: $i $TIMEDIFF seconds"
+done
+df -h $MOUNTPOINT/* >> ~/flash.bench.$TARGET
+}
+
+function find_file {
+# start the find bench
+echo "Filesystem find bench" >> ~/flash.bench.$TARGET
+sync
+for i in fat32 btrfs btrfs-zstd ext4 ext4ssd btrfs ext3 ext3ssd f2fs 
+	do
+	TIMESTART=`date +%s`
+	time find $MOUNTPOINT/$i -name Makefile
+	TIMEEND=`date +%s`
+	TIMEDIFF=`expr $TIMEEND - $TIMESTART`
+	echo "Filesystem: $i $TIMEDIFF seconds" >> ~/flash.bench.$TARGET
+	echo "Filesystem: $i $TIMEDIFF seconds"
+done
+}
+
+function find_read_small_file {
+# start the read bench
+umount $MOUNTPOINT/*
+mount_flash
+echo "Filesystem file read small file bench" >> ~/flash.bench.$TARGET
+sync
+for i in fat32 btrfs btrfs-zstd ext4 ext4ssd btrfs ext3 ext3ssd f2fs 
+	do
+	TIMESTART=`date +%s`
+	time find $MOUNTPOINT/$i -name serial-console.txt -exec cat {} > /dev/null \;
+	TIMEEND=`date +%s`
+	TIMEDIFF=`expr $TIMEEND - $TIMESTART`
+	echo "Filesystem: $i $TIMEDIFF seconds" >> ~/flash.bench.$TARGET
+	echo "Filesystem: $i $TIMEDIFF seconds"
+done
+}
+
+mount_flash
+
+rm ~/flash.bench.$TARGET
+echo "disk usage before run" >> ~/flash.bench.$TARGET
+df -h $MOUNTPOINT/* >> ~/flash.bench.$TARGET
+
+large_copy
+copy_small
+find_file
+find_read_small_file
+
+umount $MOUNTPOINT/*
