@@ -7,6 +7,7 @@ TMP=/mnt/tempfs
 if [ "$1" == '' ]; then
 	echo "Choosing iPhone6,1 (5S)"
 	echo -e "\nFor iPhone 6 type: iPhone7,2\nSE: iPhone8,4\n6s: iPhone8,1\n7: iPhone9,3"
+	echo -e "\nFor iPhone air : iPad 4,2\n"
 	echo -e "\nCTRL+C to cancel"
 	sleep 2
 	PHONE="iPhone6,1"
