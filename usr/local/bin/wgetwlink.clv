@@ -16,30 +16,32 @@ if [ "$DOMAIN" == "github.com" ]; then
 	# WEB  URL: https://github.com/Dolibarr/dolibarr/archive/8.0.4.tar.gz
 	# REAL URL: https://codeload.github.com/Dolibarr/dolibarr/tar.gz/8.0.4
 	echo "github experimental support"
-	# OK URL https://codeload.github.com/dotproject/dotProject/zip/v2.1.9
-	# But I FOUND:
-	# https://codeload.github.com/dotproject/dotProject/https://github.com/dotproject/dotProject/archive/v2.1.9.zip/v2.1.9.zip
 	sleep 2
 	VERSION=$(echo $1 | sed -e 's+.*archive/v++' -e 's+.*archive/++' -e 's+.tar.*++')
 	PRGNAME=$(echo $1 | cut -d'/' -f5)
 	PROJNAME=$(echo $1 | cut -d'/' -f4)
 	FILETYPE=$(echo $1 | sed -e 's+.*\.tar+tar+')
-	URL="https://codeload.github.com/$PROJNAME/$PRGNAME/$FILETYPE/v$VERSION"
+	URLNEW="https://codeload.github.com/$PROJNAME/$PRGNAME/$FILETYPE/v$VERSION"
 	FILENAME=$(echo $1 | sed -e 's+/download$++' -e "s+archive/.*+archive/v$VERSION/$PRGNAME-$VERSION.tar.gz+" -e 's/.*\///g')
-	echo -e "VER: $VERSION\nNAME: $PRGNAME\nURL: $URL\nFILE $FILENAME"
+	echo -e "VER: $VERSION\nNAME: $PRGNAME\nURLNEW: $URLNEW\nFILE $FILENAME"
 fi
 
 if [ "$DOMAIN" == "sourceforge.net" ]; then
 	echo "sourceforge address detected."
-	URL=$(echo $1 | sed -e 's+/download$++')
-	FILENAME=$(echo $URL | sed -e 's/.*\///g')
+	URLNEW=$(echo $1 | sed -e 's+/download$++')
+	FILENAME=$(echo $URLNEW | sed -e 's/.*\///g')
 	PRGNAME=$(echo $1 | cut -d'/' -f5)
 	VERSION=$(echo $FILENAME | sed -e "s+$PRGNAME-++" -e 's+-.*++')
-	URL=$(echo $1 | sed -e "s+archive/.*+archive/v$VERSION/$PRGNAME-$VERSION.tar.gz+")
-	echo -e "VER: $VERSION\nNAME: $PRGNAME\nURL: $URL\nFILE $FILENAME"
+	URLNEW=$(echo $1 | sed -e "s+archive/.*+archive/v$VERSION/$PRGNAME-$VERSION.tar.gz+")
+	echo -e "VER: $VERSION\nNAME: $PRGNAME\nURLNEW: $URLNEW\nFILE $FILENAME"
 fi
 
-wget "$URL" -O "$FILENAME"
+if [ $? == 8 ] || [ "$URLNEW" == '' ] ; then # 404 code
+	echo "using original URL"
+	wget "$URL" -O "$FILENAME"
+else
+	wget "$URLNEW" -O "$FILENAME"
+fi
 
 # keep only last url
 FILE_AND_PATH=$(echo "$1" | sed -e 's+.*\/++')

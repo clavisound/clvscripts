@@ -2,7 +2,7 @@
 # Pass -r option to remove capabilities
 OPTION=$1
 SETCAPOPTION="cap_ipc_lock,cap_sys_nice=ep"
-BINARIES="wine jackd qjackctl hydrogen qtractor pianoteq3 pianoteq4 pianoteq5 qmmp fst.exe fst.exe.so qsynth fluidsynth jack_capture renoise"
+BINARIES="wine jackd qjackctl hydrogen qtractor pianoteq3 pianoteq4 pianoteq5 qmmp fst.exe fst.exe.so qsynth fluidsynth jack_capture renoise lmms"
 LIBRARIES="fsthost.exe.so"
 
 if [ "$OPTION" = "-r" ]; then
