@@ -13,6 +13,7 @@ fi
 if [ -e /opt/firefox-$VERSION ]; then
 	DIR=$HOME/.config/firefox-$VERSION
 	mkdir -p $DIR
+	export XAUTHORITY=$HOME/.Xauthority
 	export HOME=$DIR
 else
 	echo "Error: firefox-$VERSION, not found"
