@@ -1,0 +1,35 @@
+#!/bin/bash
+CURDATE=`date +%Y-%m-%d,%H:%M.%S`
+
+mkdir -p /root/mysqldbs/$CURDATE
+MYSQLBCKDIR="/root/mysqldbs/$CURDATE"
+
+# Do we have pass= in ~/.my.cnf
+CNFPASS=$(grep password= ~/.my.cnf | sed 's/.*=//' | tail -1)
+MYSQLPASSWORD=${MYSQLPASSWORD:-$CNFPASS}
+echo $MYSQLPASSWORD;exit
+
+if [ "$MYSQLPASSWORD" == "" ]; then
+	echo "Aborting. Start the script with MYSQLPASSWORD=mypass $0"
+	echo "Or set a password in ~/.my.cnf"
+	exit 1
+fi
+
+if [ "$1" == '' ]; then
+	for DATABASE in $(echo "show databases;" | mysql -uroot -p$MYSQLPASSWORD)
+	do
+		# if [ "$DATABASE" = "information_schema" ]; then
+		if [ "$DATABASE" = "Database" ] || [ "$DATABASE" = "information_schema" ] || [ "$DATABASE" = "performance_schema" ]; then
+			echo "Ignoring database: $DATABASE"
+		else
+			mysqldump --skip-add-locks $DATABASE -uroot -p$MYSQLPASSWORD > $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump	
+			bzip2 $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump
+		fi
+	done
+else
+	DATABASE=$1
+	mysqldump $DATABASE -uroot -p$MYSQLPASSWORD > $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump	
+	bzip2 $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump
+fi	
+
+ls -lht $MYSQLBCKDIR/*.mysqldump.bz2
