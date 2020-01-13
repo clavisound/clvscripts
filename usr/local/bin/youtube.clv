@@ -3,8 +3,13 @@
 
 LIMITRATE=${LIMITRATE:-"-r 150k"}
 
-youtube-dl -f 135 $LIMITRATE -k $1
-youtube-dl -f 171 $LIMITRATE -k $1
+# old
+#youtube-dl -f 135 $LIMITRATE -k $1
+#youtube-dl -f 171 $LIMITRATE -k $1
+
+# new JAN20
+youtube-dl -f 140 $LIMITRATE -k $1 # audio m4a
+youtube-dl -f 244 $LIMITRATE -k $1 # video webm
 
 LINK=$(echo $1 | sed 's/.*v=//')
 #FILE=$(find ./ -name \*$LINK\* | sed -e 's/\.f...*\.webm//g' -e 's+\.web++' | sed -f /etc/escapechars.sed | head -1)
@@ -12,7 +17,7 @@ FILE=$(find ./ -name \*$LINK.webm | tail -1 | sed -e 's+\./++' -e 's+\.webm++' |
 
 # not sure for those values, but it doesn't matter
 VIDEO=$FILE.webm
-AUDIO=$FILE.mp4
+AUDIO=$FILE.m4a
 
 #AUDIO=$(find ./ -name \*$LINK\*.webm | sed -f /etc/escapechars.sed)
 #if [ "$AUDIO" == "" ]; then # sometimes the audiofile is m4a
