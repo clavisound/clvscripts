@@ -7,6 +7,7 @@ MYSQLBCKDIR="/root/mysqldbs/$CURDATE"
 # Do we have pass= in ~/.my.cnf
 CNFPASS=$(grep password= ~/.my.cnf | sed 's/.*=//' | tail -1)
 MYSQLPASSWORD=${MYSQLPASSWORD:-$CNFPASS}
+echo $MYSQLPASSWORD;exit
 
 if [ "$MYSQLPASSWORD" == "" ]; then
 	echo "Aborting. Start the script with MYSQLPASSWORD=mypass $0"
