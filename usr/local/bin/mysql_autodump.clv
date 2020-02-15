@@ -1,11 +1,12 @@
 #!/bin/bash
 CURDATE=`date +%Y-%m-%d,%H:%M.%S`
 
-mkdir -p /root/mysqldbs/$CURDATE
-MYSQLBCKDIR="/root/mysqldbs/$CURDATE"
+MYSQLBCKDIR=~/mysqldbs/$CURDATE
+mkdir -pv $MYSQLBCKDIR
 
 # Do we have pass= in ~/.my.cnf
 CNFPASS=$(grep password= ~/.my.cnf | sed 's/.*=//' | tail -1)
+CNFUSER=$(grep user= ~/.my.cnf | sed 's/.*=//' | tail -1)
 MYSQLPASSWORD=${MYSQLPASSWORD:-$CNFPASS}
 
 if [ "$MYSQLPASSWORD" == "" ]; then
@@ -15,19 +16,19 @@ if [ "$MYSQLPASSWORD" == "" ]; then
 fi
 
 if [ "$1" == '' ]; then
-	for DATABASE in $(echo "show databases;" | mysql -uroot -p$MYSQLPASSWORD)
+	for DATABASE in $(echo "show databases;" | mysql -u$CNFUSER -p$MYSQLPASSWORD)
 	do
 		# if [ "$DATABASE" = "information_schema" ]; then
 		if [ "$DATABASE" = "Database" ] || [ "$DATABASE" = "information_schema" ] || [ "$DATABASE" = "performance_schema" ]; then
 			echo "Ignoring database: $DATABASE"
 		else
-			mysqldump --skip-add-locks $DATABASE -uroot -p$MYSQLPASSWORD > $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump	
+			mysqldump --skip-add-locks $DATABASE -u$CNFUSER -p$MYSQLPASSWORD > $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump	
 			bzip2 $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump
 		fi
 	done
 else
 	DATABASE=$1
-	mysqldump $DATABASE -uroot -p$MYSQLPASSWORD > $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump	
+	mysqldump $DATABASE -u$CNFUSER -p$MYSQLPASSWORD > $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump	
 	bzip2 $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump
 fi	
 
