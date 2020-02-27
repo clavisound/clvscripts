@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ "$1" == "" ]; then
+	echo "Give me ip"
+	exit 1
+fi
+
+grep $1 /var/log/maillog > ~/abuse/$1.maillog
+bzip2 ~/abuse/$1.maillog
+whois $1 | grep abuse
+echo "echo \"Please deal with this abuser.\n\nCheck maillog attachment\" | mail -s \"smtp abuser $1\" -a ~/abuse/$1.maillog.bz2"

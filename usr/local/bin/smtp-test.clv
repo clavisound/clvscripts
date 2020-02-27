@@ -1,0 +1,19 @@
+#!/usr/bin/expect
+
+#If it all goes pear shaped the script will timeout after 20 seconds.
+set timeout 1
+stty echo
+#First argument is assigned to the variable host
+set host [lindex $argv 0]
+#Second argument is assigned to the variable myhost
+set myhost [lindex $argv 1]
+#Third argument is assigned to the variable password
+set password [lindex $argv 2]
+#This spawns the telnet program and connects it to the variable host
+spawn telnet $host 25
+sleep 1
+#The script sends the myhost variable
+send "EHLO $myhost "
+sleep 1
+send "quit"
+
