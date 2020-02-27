@@ -3,25 +3,28 @@
 
 LIMITRATE=${LIMITRATE:-"-r 150k"}
 
+echo "youtube-dl -f 135 $LIMITRATE -k $1"
+#-o '%(title)s__%(id).%(ext)s'
 youtube-dl -f 135 $LIMITRATE -k $1
-youtube-dl -f 171 $LIMITRATE -k $1
+if [ $? == 1 ]; then
+	youtube-dl -F $LIMITRATE -k $1 | grep audio | tail -1
+	echo "error with video"; exit 1
+fi
+echo "youtube-dl -f 140/251/171 $LIMITRATE -k $1"
+youtube-dl -f 140/251/171 $LIMITRATE -k $1 
+#-o '%(title)s__%(id).%(ext)s'
+if [ $? == 1 ]; then
+	youtube-dl -F $LIMITRATE -k $1 | grep 480 | tail -1
+	echo "error with audio"; exit 1
+fi
 
 LINK=$(echo $1 | sed 's/.*v=//')
-#FILE=$(find ./ -name \*$LINK\* | sed -e 's/\.f...*\.webm//g' -e 's+\.web++' | sed -f /etc/escapechars.sed | head -1)
-FILE=$(find ./ -name \*$LINK.webm | tail -1 | sed -e 's+\./++' -e 's+\.webm++' | sed -f /etc/escapechars.sed)
-
-# not sure for those values, but it doesn't matter
-VIDEO=$FILE.webm
-AUDIO=$FILE.mp4
-
-#AUDIO=$(find ./ -name \*$LINK\*.webm | sed -f /etc/escapechars.sed)
-#if [ "$AUDIO" == "" ]; then # sometimes the audiofile is m4a
-#	AUDIO=$(find ./ -name \*$LINK\*.m4a | sed -f /etc/escapechars.sed)
-#fi
-
-#VIDEO=$(find ./ -name \*$LINK\*.f\*webm | sed -f /etc/escapechars.sed)
+FILE=$(find ./ -name \*$LINK.mp4 -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.mp4$++' | sed -f /etc/escapechars.sed || find ./ -name \*$LINK.m4a -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.m4a$++' | sed -f /etc/escapechars.sed)
+echo "find ./ -name \*$LINK.webm -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.webm++' | sed -f /etc/escapechars.sed"
+FILEA=$(find ./ -name \*$LINK\* -maxdepth 1 | tail -1 | sed -f /etc/escapechars.sed)
+FILEB=$(find ./ -name \*$LINK\* -maxdepth 1 | head -1 | sed -f /etc/escapechars.sed)
 
 # I don't need lame
 # ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -aq 4 -vcodec copy \
-ffmpeg -i "$AUDIO" -i "$VIDEO" -c copy -y "$FILE".merged.mp4
-echo ffmpeg -i "$AUDIO" -i "$VIDEO" -c copy -y "$FILE".merged.mp4
+ffmpeg -i "$FILEA" -i "$FILEB" -c copy -y "$FILE".merged.mp4
+echo ffmpeg -i "$FILEA" -i "$FILEB" -c copy -y "$FILE".merged.mp4
