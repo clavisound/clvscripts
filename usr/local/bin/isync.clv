@@ -1,0 +1,14 @@
+#!/bin/bash
+if [ -e ~/iOS/user-area/DCIM/100APPLE ]; then
+	IDEVICE=`ideviceinfo -s | grep DeviceID | sed 's/.*: //'`
+	if [ "$IDEVICE" == "" ]; then
+		echo "iDevice not found."
+		exit 1
+	fi
+	for IFOLDERS in DCIM Purchases Recordings Books
+	do
+		mkdir -p ~/iOS/bck/$IDEVICE/user-area/$IFOLDERS/
+	        echo "rsync device: $IDEVICE to ~/iOS/bck/$IDEVICE/user-area/$IFOLDERS"
+		rsync -av ~/iOS/user-area/$IFOLDERS ~/iOS/bck/$IDEVICE/user-area/
+	done
+fi

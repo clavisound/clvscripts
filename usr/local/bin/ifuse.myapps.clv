@@ -5,7 +5,7 @@
 # TODO: put GPL here
 # TODO: Make a list on user command (check_reqs)
 
-# requires: ideviceinstaller, ifuse, usbmuxd
+# requires: ideviceinstaller, ifuse, usbmuxd, libimobiledevice
 
 FUSES=0
 
@@ -44,7 +44,7 @@ if [ ! -e ~/.appids ]; then
 fi
 
 if [ "$1" == "" ]; then
-	cat ~/.appids | while read LINE
+	grep -v '#' ~/.appids | while read LINE
 	do 
 		# TODO: don't read appids, but folders.
 		mkdir -p ~/iOS/$LINE
@@ -65,7 +65,7 @@ fi
 
 # okwith libimobiledive-1.0.7, ifuse-1.1.2
 mkdir -p ~/iOS/user-area
-ifuse ~/iOS/user-area || echo "Error"
+ifuse ~/iOS/user-area || echo "---------- Error ---------"
 
 # echo umount commands
 echo $IFUSEUMOUNT
