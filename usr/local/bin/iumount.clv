@@ -1,0 +1,4 @@
+#!/bin/bash
+# unmount ifuse mount by current user
+USER=`id | sed -e 's+).*++' -e 's+.*(++'`
+grep ifuse.*"$USER" /etc/mtab | sed -e 's/ifuse //' -e 's/fuse.ifuse.*//' | while read MOUNT; do fusermount -u $MOUNT; done
