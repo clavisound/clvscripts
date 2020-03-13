@@ -1,4 +1,18 @@
 #!/bin/bash
-# unmount ifuse mount by current user
+# unmount ifuse mount from current user
 USER=`id | sed -e 's+).*++' -e 's+.*(++'`
-grep ifuse.*"$USER" /etc/mtab | sed -e 's/ifuse //' -e 's/fuse.ifuse.*//' | while read MOUNT; do fusermount -u $MOUNT || echo "error with $MOUNT"; exit 1; done
+
+IMOUNTS=$(grep ifuse.*"$USER" /etc/mtab | sed -e 's/ifuse //' -e 's/fuse.ifuse.*//' | wc -l)
+
+iumount(){
+	grep ifuse.*"$USER" /etc/mtab | sed -e 's/ifuse //' -e 's/fuse.ifuse.*//' | while read MOUNT
+	do 
+		echo umount $MOUNT
+		fusermount -u $MOUNT || echo "error with $MOUNT"; exit 1
+	done
+}
+
+for COUNTS in `seq 1 1 2`
+do
+	iumount
+done

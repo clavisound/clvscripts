@@ -4,6 +4,10 @@ CURL=$(echo "$1" | sed -f /etc/url-conv.sed)
 CURL=$(echo $CURL | sed 's/_..ts//')
 KBYTES=$2
 
+if [ "$1" == "" ]; then
+	echo "Usage: $0 URL RATE (in kbytes)"
+fi
+
 if [ "$KBYTES" = '' ]; then
 	KBYTES="100"
 fi
@@ -35,10 +39,6 @@ else
 	CURLFIRST=$(grep _..ts temp.$FILE.ts.list | head -1)
 	CURLLAST=$(grep _....ts temp.$FILE.ts.list | sort -n | tail -1 | sed -e 's/.*_//g' -e 's/_....ts/_/g' -e 's/.ts//g')
 	echo LAST ts is $CURLLAST
-	if [ "$CURLLAST" == "" ]; then
-		echo "Error. Not ts streams found."
-		exit 1
-	fi
 	CURL=$(echo ${CURLCLEAN}${CURLFIRST} | sed 's/_..ts//')
 	
 	echo curl -s -k --limit-rate ${KBYTES}k "${CURL}_[0-9].ts" -o "${FILE}__00#1.ts"
