@@ -7,4 +7,6 @@ vim ~/abuse/${IP}__${DATE}.maillog
 bzip2 ~/abuse/${IP}__${DATE}.maillog
 whois $IP | grep abuse
 
-echo "echo \"This ip attacks my mail server\n\nCheck attached log for details.\n\nThank you.\" | mail -s \"IP: $IP attacks server mail.etraq.eu\" -a ~/abuse/${IP}__${DATE}.maillog.bz2"
+echo "echo \"IP: $IP attacks my mail server.\n\nCheck attached log for details.\n\n$IP is banned in my side for unknown time.\n\nThank you.\" | mail -s \"IP: $IP attacks server.\" -a ~/abuse/${IP}__${DATE}.maillog.bz2"
+
+echo "iptables -A INPUT -J DROP_CLV -s $IP"
