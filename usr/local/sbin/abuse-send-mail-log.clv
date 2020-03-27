@@ -1,12 +1,13 @@
 #!/bin/bash
 IP=$1
 DATE=$(date +%Y-%m-%d)
+HOST=`hostname -f`
 
 grep $IP /var/log/maillog > ~/abuse/${IP}__${DATE}.maillog
 vim ~/abuse/${IP}__${DATE}.maillog
 bzip2 ~/abuse/${IP}__${DATE}.maillog
 whois $IP | grep abuse
 
-echo "echo \"IP: $IP attacks my mail server.\n\nCheck attached log for details.\n\n$IP is banned in my side for unknown time.\n\nThank you.\" | mail -s \"IP: $IP attacks server.\" -a ~/abuse/${IP}__${DATE}.maillog.bz2"
+echo "echo \"IP: $IP attacks my mail server. Host: $HOST.\n\nCheck attached log for details.\n\n$IP is banned in my side for unknown time.\n\nThank you.\" | mail -s \"IP: $IP attacks server.\" -a ~/abuse/${IP}__${DATE}.maillog.bz2"
 
-echo "iptables -A INPUT -J DROP_CLV -s $IP"
+echo "iptables -A INPUT -j DROP_CLV -s $IP"
