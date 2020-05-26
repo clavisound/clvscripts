@@ -2,6 +2,10 @@
 # wait for usbmuxd
 sleep 3
 
+if [ $1 -gt 0 ]; then
+	sleep 3;
+fi
+
 FILE=/var/log/iOS.GasGauge
 
 sleep 3

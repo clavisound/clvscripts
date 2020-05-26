@@ -3,6 +3,7 @@
 VIDEOCHUNK=$(echo "$1" | sed -f /etc/url-conv.sed)
 VIDEOCHUNK=$(echo $VIDEOCHUNK | sed 's/_..ts//')
 KBYTES=$2
+OPTIONS="-s -k" # normal -s -k
 
 if [ "$1" == "" ]; then
 	echo "Usage: $0 URL RATE (in kbytes -l)"
@@ -22,41 +23,42 @@ if [ $? == 1 ]; then
 #	FILE=$(echo -n $2__; date +%d%m%y)
 	FILE=$(echo "$VIDEOCHUNK" | sed -e 's+.*/20+20+' -e 's+.mp4/.*++'g)
 	
-	echo curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
-	curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
+	echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
+	curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
 
-	echo curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
-	curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
+	echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
+	curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
 	
-	echo curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[100-146].ts" -o "${FILE}__#1.ts"
-	curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[100-146].ts" -o "${FILE}__#1.ts"
+	echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[100-146].ts" -o "${FILE}__#1.ts"
+	curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[100-146].ts" -o "${FILE}__#1.ts"
 else
 	# if ends with m3u8 then this
 #	FILE=$(echo "$1" | sed -e 's+.*paidikes-seires/.*/20+20+' -e 's+.mp4/.*++'g)
 #	FILE=$(echo "$VIDEOCHUNK" | sed -e 's+.*/20+20+' -e 's+.mp4/.*++'g)
 	FILE=$(echo "$VIDEOCHUNK" | sed -e 's+.*/20+20+' -e 's+.mp4/.*++'g | tr '/' '_')
-	CHUNK=$(curl -s -k "$VIDEOCHUNK" | grep m3u8)
+	CHUNK=$(curl $OPTIONS "$VIDEOCHUNK" | grep m3u8)
 	VIDEOCHUNKCLEAN=$(echo $VIDEOCHUNK | sed 's/playlist.*//')
-	curl -s -k "${VIDEOCHUNKCLEAN}${CHUNK}" > temp.$FILE.ts.list
+	curl ${OPTIONS} "${VIDEOCHUNKCLEAN}${CHUNK}" > temp.$FILE.ts.list
+	echo $1 > "$FILE".link
 	VIDEOCHUNKFIRST=$(grep _..ts temp.$FILE.ts.list | head -1)
 	VIDEOCHUNKLAST=$(grep .ts temp.$FILE.ts.list | tail -1 | sed -e 's/.*_//g' -e 's/_....ts/_/g' -e 's/.ts//g')
 	echo LAST ts is $VIDEOCHUNKLAST
 	VIDEOCHUNK=$(echo ${VIDEOCHUNKCLEAN}${VIDEOCHUNKFIRST} | sed 's/_..ts//')
 	
-	echo curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
-	curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
+	echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
+	curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
 	
 	if [ $VIDEOCHUNKLAST -lt 99 ]; then
-		echo curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
-		curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
+		echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
+		curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
 	else
-		echo curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
-		curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
+		echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
+		curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
 	fi
 
 	if [ $VIDEOCHUNKLAST -gt 99 ]; then
-		echo curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[100-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
-		curl -s -k --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[100-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
+		echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[100-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
+		curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[100-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
 	fi
 fi
 
