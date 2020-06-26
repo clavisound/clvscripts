@@ -34,7 +34,7 @@ killall chrome
 killall chromium
 killall adb
 
-for MOUNTS in 270G 30g gmx freecom 100g kitrino blue 32G_SD sandisk8g apacer8g wd1 tms 1tbalu
+for MOUNTS in 300G-nfs 32G-SD-nfs 270G 30g gmx freecom 100g kitrino blue 32G_SD sandisk8g apacer8g wd1 tms 1tbalu 
 # for MOUNTS in 270G 30g gmx freecom 100g kitrino blue sandisk8g apacer8g wd1 tms 1tbalu
 do
 	echo "unmounting... $MOUNTS"
@@ -52,6 +52,9 @@ done
 killall artsd
 killall xine
 killall knotify4
+killall netresolv
+
+modprobe -r e1000e # sometimes we have hardware error. This is a workaround
 sync
 
 # BUG, does not work
@@ -95,6 +98,8 @@ sleep 1
 
 # disable wwan
 echo disable > /proc/acpi/ibm/wan
+
+modprobe e1000e
 
 sleep 1
 wicd-cli -c -z
