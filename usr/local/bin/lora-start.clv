@@ -1,0 +1,25 @@
+#!/bin/bash
+LORAFOLDER=/var/lora_pkt_fwd
+LOGFOLDER=/media/32G_SD/lora/
+
+# check for existing lora
+PIDLORAPKTFWD=$(ps -eo pid,command | grep -E '[0-9] lora_pkt_fwd' | sed -e 's+ lora.*++' -e 's+ ++')
+
+startLoRa(){
+	echo "LoRa starting.."
+	cd $LORAFOLDER
+	lora_pkt_fwd | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started | tee -a $LOGFOLDER/lora.log
+}
+
+# we don't run lora, run it
+if [ "$PIDLORAPKTFWD" == "" ]; then
+	echo "No lora_pkt_fwd running"
+	startLoRa
+fi
+
+# we run lora, close it
+if [ $PIDLORAPKTFWD -gt 0 ]; then
+	echo "We kill lora_pkt_fwd"
+	kill -9 $PIDLORAPKTFWD
+	startLoRa
+fi
