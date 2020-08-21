@@ -35,10 +35,10 @@ ACTION=$1
 DESTID=$2
 
 if [ "$ACTION" != "send" ] && [ "$ACTION" != "test" ]; then
-	echo "Usage $0 send/test 30number 'text in quotes if it has spaces!'"
+	echo "Usage: $0 send/test 30number 'text in quotes if it has spaces!'"
 	exit 1
 fi
 
 MESSAGECURL=$(echo $3 | sed -e 's/ /%20/g' -e 's/\_/%20/g')
 echo curl "https://www.omnivoice.eu/api/send_sms.cfm?uname=$UNAME&pword=$PWORD&sacc=$UNAME&message=$MESSAGECURL&destid=$DESTID&action=$ACTION&cid=$CID"
-curl "https://www.omnivoice.eu/api/send_sms.cfm?uname=$UNAME&pword=$PWORD&sacc=$UNAME&message=$MESSAGECURL&destid=$DESTID&action=$ACTION&cid=$CID"
+curl --cacert ~/omnivoice/omnivoice_eu.crt "https://www.omnivoice.eu/api/send_sms.cfm?uname=$UNAME&pword=$PWORD&sacc=$UNAME&message=$MESSAGECURL&destid=$DESTID&action=$ACTION&cid=$CID"
