@@ -3,19 +3,25 @@
 
 LIMITRATE=${LIMITRATE:-"-r 150k"}
 
-echo "youtube-dl -f 135 $LIMITRATE -k $1"
-#-o '%(title)s__%(id).%(ext)s'
-youtube-dl -f 135 $LIMITRATE -k $1
-if [ $? == 1 ]; then
-	youtube-dl -F $LIMITRATE -k $1 | grep audio | tail -1
-	echo "error with video"; exit 1
-fi
 echo "youtube-dl -f 140/251/171 $LIMITRATE -k $1"
 youtube-dl -f 140/251/171 $LIMITRATE -k $1 
 #-o '%(title)s__%(id).%(ext)s'
 if [ $? == 1 ]; then
 	youtube-dl -F $LIMITRATE -k $1 | grep 480 | tail -1
 	echo "error with audio"; exit 1
+fi
+
+if [ $2 == "-a" ]; then
+	echo "Only audio downloading."
+	exit 0
+fi
+
+echo "youtube-dl -f 135 $LIMITRATE -k $1"
+#-o '%(title)s__%(id).%(ext)s'
+youtube-dl -f 135 $LIMITRATE -k $1
+if [ $? == 1 ]; then
+	youtube-dl -F $LIMITRATE -k $1 | grep audio | tail -1
+	echo "error with video"; exit 1
 fi
 
 LINK=$(echo $1 | sed 's/.*v=//')

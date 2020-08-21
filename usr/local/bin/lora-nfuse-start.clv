@@ -1,0 +1,44 @@
+#!/bin/bash
+echo "Waiting 25 seconds to make sure device is up"
+sleep 25
+
+LORA_FORWARDER_FOLDER=/var/lora_pkt_fwd
+LOGFOLDER=/media/32G_SD/lora/
+
+# check for existing lora
+PIDLORAPKTFWD=$(ps -eo pid,command | grep -E '[0-9] lora_pkt_fwd' | sed -e 's+ lora.*++' -e 's+ ++')
+
+startLoRa(){
+	checkforACMzero
+	if [ $? == 0 ]; then
+		echo "LoRa starting.."
+		cd $LORA_FORWARDER_FOLDER
+		lora_pkt_fwd | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started | tee -a $LOGFOLDER/lora.log
+	else
+		echo "We expect LoRa concentrator on ACM0"
+		echo "You can try as root modprobe -r cdc_acm; modprobe cdc_acm if the only cdc_acm device is the LoRa concentrator"
+		exit 1
+	fi
+
+}
+
+checkforACMzero(){
+	if [ -e /dev/ttyACM0 ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+# we don't run lora, run it
+if [ "$PIDLORAPKTFWD" == "" ]; then
+#	echo "No lora_pkt_fwd running"
+	startLoRa
+fi
+
+# we run lora, close it
+if [ $PIDLORAPKTFWD -gt 0 ]; then
+	echo "We kill lora_pkt_fwd"
+	kill -9 $PIDLORAPKTFWD
+	startLoRa
+fi

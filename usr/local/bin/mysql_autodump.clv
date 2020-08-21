@@ -11,7 +11,11 @@ CNFUSER=$(grep user= ~/.my.cnf | sed 's/.*=//' | tail -1)
 if [ "$CNFPASS" != '' ]; then
 	MYSQLPASSWORD=${MYSQLPASSWORD:-$CNFPASS}
 fi
-echo $MYSQLPASSWORD
+
+if [ "$CNFPASS" == "" ]; then
+	CNFUSER=root
+fi
+echo pass: $MYSQLPASSWORD
 
 if [ "$MYSQLPASSWORD" == "" ]; then
 	echo "Aborting. Start the script with MYSQLPASSWORD=mypass $0"
@@ -26,6 +30,7 @@ if [ "$1" == '' ]; then
 		if [ "$DATABASE" = "Database" ] || [ "$DATABASE" = "information_schema" ] || [ "$DATABASE" = "performance_schema" ]; then
 			echo "Ignoring database: $DATABASE"
 		else
+			echo "working on database: $DATABASE"
 			mysqldump --skip-add-locks $DATABASE -u$CNFUSER -p$MYSQLPASSWORD > $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump	
 			bzip2 $MYSQLBCKDIR/$DATABASE\_\_$CURDATE.mysqldump
 		fi
