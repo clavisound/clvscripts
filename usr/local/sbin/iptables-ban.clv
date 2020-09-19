@@ -1,0 +1,13 @@
+#!/bin/bash
+IP=$1
+
+if [ "$IP" == '' ]; then
+	echo "Usage $0 IP"
+	exit 1
+fi
+
+iptables -A INPUT -j DROP_CLV -s $IP
+echo iptables -A INPUT -j DROP_CLV -s $IP
+iptables -L -n --line-numbers | grep $IP
+
+echo "del with: iptables -D INPUT NUMBER"
