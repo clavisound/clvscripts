@@ -13,7 +13,7 @@ startLoRa(){
 	if [ $? == 0 ]; then
 		echo "LoRa starting.."
 		cd $LORA_FORWARDER_FOLDER
-		lora_pkt_fwd | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started | tee -a $LOGFOLDER/lora.log
+		lora_pkt_fwd | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log
 	else
 		echo "We expect LoRa concentrator on ACM0"
 		echo "You can try as root modprobe -r cdc_acm; modprobe cdc_acm if the only cdc_acm device is the LoRa concentrator"
