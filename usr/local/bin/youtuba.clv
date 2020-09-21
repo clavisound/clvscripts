@@ -1,0 +1,7 @@
+#!/bin/bash
+# Requires latest youtube-dl, ffmpeg
+
+LIMITRATE=${LIMITRATE:-"-r 150k"}
+
+# new JAN20
+youtube-dl -f 140/251/161 $LIMITRATE -k $1 # audio m4a
