@@ -1,29 +1,34 @@
 #!/bin/bash
-echo "Waiting 25 seconds to make sure device is up"
-sleep 25
 
 LORA_FORWARDER_FOLDER=/var/lora_pkt_fwd
 LOGFOLDER=/media/32G_SD/lora/
+ACM=$1
+
+if [ "$ACM" == '' ]; then
+	ACM=0
+fi
 
 # check for existing lora
 PIDLORAPKTFWD=$(ps -eo pid,command | grep -E '[0-9] lora_pkt_fwd' | sed -e 's+ lora.*++' -e 's+ ++')
 
 startLoRa(){
-	checkforACMzero
+	checkforACM
 	if [ $? == 0 ]; then
+		echo "Waiting 25 seconds to make sure device is up"
+		sleep 25
 		echo "LoRa starting.."
 		cd $LORA_FORWARDER_FOLDER
-		lora_pkt_fwd | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log
+		lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log
 	else
-		echo "We expect LoRa concentrator on ACM0"
+		echo "We expect LoRa concentrator on ACM$ACM"
 		echo "You can try as root modprobe -r cdc_acm; modprobe cdc_acm if the only cdc_acm device is the LoRa concentrator"
 		exit 1
 	fi
 
 }
 
-checkforACMzero(){
-	if [ -e /dev/ttyACM0 ]; then
+checkforACM(){
+	if [ -e /dev/ttyACM$ACM ]; then
 		return 0
 	else
 		return 1
