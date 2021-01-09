@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ "$2" == "" ]; then
+	echo "Usage $0 taxis-payment-file.pdf nbg-payment.pdf"
+	exit
+fi
+
+pdftopng.clv $1
+pdftopng.clv $2
+
+convert ${1}-1.ppm.png -crop +0-920 ${2}-1.ppm.png -crop +0-650 -append ${1}.merge.png
+rm ${1}-1.ppm.png ${2}-1.ppm.png
