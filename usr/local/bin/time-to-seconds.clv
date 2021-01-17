@@ -1,0 +1,26 @@
+#!/bin/bash
+
+echo $1 | grep -q :.*:
+if [ $? == 1 ]; then
+	echo "Error give me time like 0:34:12 (HOURS:MINUTES:SECONDS)"
+	exit 1
+fi
+
+HOURS=$(echo $1 | sed -e 's/:.*//')
+MINS=$(echo $1 | sed -e 's/^.\{1,2\}://' -e 's/:.\{1,2\}$//')
+SECONDS=$(echo $1 | sed -e 's/.*://')
+
+echo $HOURS:$MINS:$SECONDS
+
+SECSHOURS=$(expr $HOURS \* 3600)
+if [ $SECSHOURS == '0' ]; then
+	SECSHOURS=""
+fi
+
+SECSMINS=$(expr $MINS \* 60)
+if [ $SECSMINS == '0' ]; then
+	SECSMINS=""
+fi
+
+SECSTOTAL=$(expr $SECSHOURS + $SECSMINS + $SECONDS)
+echo $SECSTOTAL
