@@ -1,0 +1,15 @@
+#!/bin/bash
+# Sometimes my FAN goes to hi-speed. This procedure, resets the fan to normal behaviour
+
+# read the FAN RPM
+FANRPM=$(grep speed: /proc/acpi/ibm/fan | sed 's/speed:\t\t//')
+
+# if more than 6.000 system probably is out-of-spec
+if [ $FANRPM -gt 6000 ]; then
+	# got to MAX
+	echo level 7 > /proc/acpi/ibm/fan
+	# give some time
+	sleep 3
+	# reset to default
+	echo level auto > /proc/acpi/ibm/fan
+fi
