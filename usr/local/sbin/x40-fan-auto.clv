@@ -1,15 +1,22 @@
 #!/bin/bash
-# Sometimes my FAN goes to hi-speed. This procedure, resets the fan to normal behaviour
+# Sometimes my FAN goes to hi-speed. 
+# With level 7 and then auto, system seems fine.
+# I also disable the fan if temp is less than 48c
 
 # read the FAN RPM
 FANRPM=$(grep speed: /proc/acpi/ibm/fan | sed 's/speed:\t\t//')
+TEMP=$(cat /proc/acpi/ibm/thermal | gawk -F" " '{ print $2 }')
 
 # if more than 6.000 system probably is out-of-spec
-if [ $FANRPM -gt 6000 ]; then
+if [ $FANRPM -gt 6000 ] || [ $TEMP -gt 55 ]; then
 	# got to MAX
 	echo level 7 > /proc/acpi/ibm/fan
 	# give some time
 	sleep 3
 	# reset to default
 	echo level auto > /proc/acpi/ibm/fan
+fi
+
+if [ $FANRPM -gt 1000 ] && [ $TEMP -lt 48 ]; then
+	echo level 0 > /proc/acpi/ibm/fan
 fi
