@@ -33,6 +33,8 @@ killall gam_server
 killall chrome
 killall chromium
 killall adb
+killall dhclient
+#killall pulseaudio
 
 for MOUNTS in 300G-nfs 32G-SD-nfs 270G 30g gmx freecom 100g kitrino blue 32G_SD sandisk8g apacer8g wd1 tms 1tbalu 
 # for MOUNTS in 270G 30g gmx freecom 100g kitrino blue sandisk8g apacer8g wd1 tms 1tbalu
@@ -49,6 +51,8 @@ do
 done
 
 /usr/sbin/alsactl store
+
+# kill some programs that hang sometimes.
 killall artsd
 killall xine
 killall knotify4
@@ -63,6 +67,7 @@ sync
 
 echo $SUSPENDMEDIA > /sys/power/state
 
+echo level auto > /proc/acpi/ibm/fan
 killall artsd
 killall wpa_supplicant
 
@@ -88,7 +93,7 @@ fi
 
 # disable 3G
 echo "disabling 3g"
-echo disabled > /proc/acpi/ibm/wan
+echo disable > /proc/acpi/ibm/wan
 
 #/usr/sbin/ip.clv wpathomson
 sleep 1
@@ -96,10 +101,9 @@ sleep 1
 # /sbin/iwconfig wlan0 essid clavisound.gr ap 00:1E:74:B0:7F:F8
 # /etc/rc.d/rc.inet1 restart
 
-# disable wwan
-echo disable > /proc/acpi/ibm/wan
-
 modprobe e1000e
 
 sleep 1
 wicd-cli -c -z
+sleep 1
+ntpdate 0.gr.pool.ntp.org

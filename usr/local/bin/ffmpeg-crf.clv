@@ -20,14 +20,20 @@ if [ "$?" == 0 ]; then # concat, we have seperate VOB files
 fi
 
 if [ "$RESO" == "" ]; then
-	RESO=576
+	CROP="-vf crop=720:576"
+else
+	CROP="-vf crop=720:$RESO"
+fi
+
+if [ "$RESO" == "0" ]; then
+	CROP=""
 fi
 
 if [ "$TYPE" == "" ]; then
 	TYPE="film"
 fi	
 
-echo "ffmpeg -threads 0 -i "$FILE" -vcodec libx264 -crf $CRF -preset veryfast -tune $TYPE -vf crop=720:$RESO -acodec libmp3lame -aq 4 -y \"./$OUTFILE.mp4\""
+echo "ffmpeg -threads 0 -i "$FILE" -vcodec libx264 -crf $CRF -preset veryfast -tune $TYPE $CROP -acodec libmp3lame -aq 4 -y \"./$OUTFILE.mp4\""
 
-ffmpeg -threads 0 -i "$FILE" -vcodec libx264 -crf $CRF -preset veryfast -tune $TYPE -vf crop=720:$RESO -acodec libmp3lame -aq 4 -y "./$OUTFILE.mp4"
+ffmpeg -threads 0 -i "$FILE" -vcodec libx264 -crf $CRF -preset veryfast -tune $TYPE $CROP -acodec libmp3lame -aq 4 -y "./$OUTFILE.mp4"
 
