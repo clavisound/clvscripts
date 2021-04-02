@@ -15,9 +15,17 @@ if [ "$DOMAIN" == "github.com" ]; then
 	# chance URL to proper filename
 	# WEB  URL: https://github.com/Dolibarr/dolibarr/archive/8.0.4.tar.gz
 	# REAL URL: https://codeload.github.com/Dolibarr/dolibarr/tar.gz/8.0.4
+
+	# WEB  URL: https://github.com/nwoltman/srt-to-vtt-cl/archive/refs/tags/v1.2.0.tar.gz
+	# REAL URL: 
 	echo "github experimental support"
 	sleep 2
-	VERSION=$(echo $1 | sed -e 's+.*archive/v++' -e 's+.*archive/++' -e 's+.tar.*++')
+	echo $1 | grep -q '/tags/'
+	if [ $? -eq 0 ]; then
+		VERSION=$(echo $1 | sed -e 's+.*/tags/v++' -e 's+.*/tags/++' -e 's+.tar.*++')
+	else
+		VERSION=$(echo $1 | sed -e 's+.*archive/v++' -e 's+.*archive/++' -e 's+.tar.*++')
+	fi 
 	PRGNAME=$(echo $1 | cut -d'/' -f5)
 	PROJNAME=$(echo $1 | cut -d'/' -f4)
 	FILETYPE=$(echo $1 | sed -e 's+.*\.tar+tar+')
