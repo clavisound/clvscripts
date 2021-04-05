@@ -2,12 +2,13 @@
 # Requires latest youtube-dl, ffmpeg
 
 LIMITRATE=${LIMITRATE:-"-r 150k"}
+YTBIN=${YTBIN:-"youtube-dl"}
 
-echo "youtube-dl -f 140/251/171 $LIMITRATE -k $1"
-youtube-dl -f 140/251/171 $LIMITRATE -k $1 
+echo "$YTBIN -f 140/251/171 $LIMITRATE -k $1"
+$YTBIN -f 140/251/171 $LIMITRATE -k $1 
 #-o '%(title)s__%(id).%(ext)s'
 if [ $? == 1 ]; then
-	youtube-dl -F $LIMITRATE -k $1 | grep 480 | tail -1
+	$YTBIN -F $LIMITRATE -k $1 | grep 480 | tail -1
 	echo "error with audio"; exit 1
 fi
 
@@ -16,11 +17,11 @@ if [ $2 == "-a" ]; then
 	exit 0
 fi
 
-echo "youtube-dl -f 135 $LIMITRATE -k $1"
+echo "$YTBIN -f 135 $LIMITRATE -k $1"
 #-o '%(title)s__%(id).%(ext)s'
-youtube-dl -f 135 $LIMITRATE -k $1
+$YTBIN -f 135 $LIMITRATE -k $1
 if [ $? == 1 ]; then
-	youtube-dl -F $LIMITRATE -k $1 | grep audio | tail -1
+	$YTBIN -F $LIMITRATE -k $1 | grep audio | tail -1
 	echo "error with video"; exit 1
 fi
 

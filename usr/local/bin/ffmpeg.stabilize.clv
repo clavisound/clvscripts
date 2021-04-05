@@ -30,7 +30,7 @@ if [ "$DEVICE" != '' ]; then
 		;;
 		" NIKON D90" )
 			echo "Selecting HIGH profile to preserve colors of $DEVICE."
-			#EXTRAOPTIONS="$EXTRAOPTIONS -profil:v high422"
+			#EXTRAOPTIONS="$EXTRAOPTIONS -profile:v high422"
 			echo "pix_fmt for Nikon D90"
 			FIRSTPASS="$EXTRAOPTIONS -pix_fmt yuv420p -ab 48k"
 			EXTRAOPTIONS="$EXTRAOPTIONS -profile:v main -pix_fmt yuv420p -s hd480 -ab 48k" 
@@ -90,10 +90,12 @@ if [ -e "$FILE.trf" ]; then
 else
 	bugs
 	# create trf file
+	echo "1st pass."
 	echo "ffmpeg -loglevel 24 -i "$FILE" -vf vidstabdetect=result="$FILE".trf$STABILIZEOPTIONS $FIRSTPASS -f null -an -"
 	ffmpeg -loglevel 24 -i "$FILE" -vf vidstabdetect=result="$FILE".trf$STABILIZEOPTIONS $FIRSTPASS -f null -an -
 	# OLD OK	ffmpeg -i "$FILE" -vf vidstabdetect=result="$FILE".trf$STABILIZEOPTIONS $EXTRAOPTIONS -pix_fmt yuv420p -f null -
 	# create the video
+	echo "2nd pass."
 	echo "ffmpeg -loglevel 24 -i "$FILE" $FFMPEGOPTIONS -c:v libx264 -preset veryfast -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS,unsharp=5:5:0.8:3:3:0.4 $EXTRAOPTIONS $AUDIOOPTIONS -crf $CRF -y "$FILE".mp4"
 	ffmpeg -loglevel 24 -i "$FILE" $FFMPEGOPTIONS -c:v libx264 -preset veryfast -vf vidstabtransform=input="$FILE".trf$TRANSFORMOPTIONS,unsharp=5:5:0.8:3:3:0.4 $EXTRAOPTIONS $AUDIOOPTIONS -crf $CRF -y "$FILE".mp4
 fi
