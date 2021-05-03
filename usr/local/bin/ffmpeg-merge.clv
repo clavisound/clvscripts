@@ -2,13 +2,18 @@
 EXT=$1
 NAME=$2
 TYPE=$3
+RESO=$4
 
 if [ "$3" == '' ]; then
 	echo "Gime a filename output: $0 ext[ts] filename[name] type[animation,film]"
 	exit
 fi
 
+if [ "$4" != '' ]; then
+	RESOLUTION="-s $4"
+fi
+
 for f in ./${NAME}*.$EXT; do echo file $PWD/$f; done > list
 ##ffmpeg -f concat -safe 0 -i list -c copy -y /media/40G-nfs/ert2/$NAME.$EXT
-echo ffmpeg -loglevel 24 -f concat -safe 0 -i list -threads 0 -vcodec libx264 -crf 23 -preset veryfast -tune $TYPE -acodec copy -y "./$NAME.mp4"
-ffmpeg -loglevel 24 -f concat -safe 0 -i list -threads 0 -vcodec libx264 -crf 23 -preset veryfast -tune $TYPE -acodec copy -y "./$NAME.mp4"
+echo ffmpeg -loglevel 24 -f concat -safe 0 -i list -threads 0 -vcodec libx264 -crf 23 $RESOLUTION -preset veryfast -tune $TYPE -acodec copy -y "./$NAME.mp4"
+ffmpeg -loglevel 24 -f concat -safe 0 -i list -threads 0 -vcodec libx264 -crf 23 $RESOLUTION -preset veryfast -tune $TYPE -acodec copy -y "./$NAME.mp4"
