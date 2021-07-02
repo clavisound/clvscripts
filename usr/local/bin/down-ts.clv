@@ -49,8 +49,8 @@ else
 	curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[0-9].ts" -o "${FILE}__00#1.ts"
 	
 	if [ $VIDEOCHUNKLAST -lt 99 ]; then
-		echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
-		curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-${VIDEOCHUNKLAST}].ts" -o "${FILE}__#1.ts"
+		echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-${VIDEOCHUNKLAST}].ts" -o "${FILE}__0#1.ts"
+		curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-${VIDEOCHUNKLAST}].ts" -o "${FILE}__0#1.ts"
 	else
 		echo curl $OPTIONS --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
 		curl ${OPTIONS} --limit-rate ${KBYTES}k "${VIDEOCHUNK}_[10-99].ts" -o "${FILE}__0#1.ts"
