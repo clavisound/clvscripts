@@ -2,6 +2,7 @@
 # Requires latest youtube-dl, ffmpeg
 
 LIMITRATE=${LIMITRATE:-"-r 150k"}
+YTBIN=${YTBIN:-"youtube-dl"}
 
 # new JAN20
-youtube-dl -f 140/251/161 $LIMITRATE -k $1 # audio m4a
+$YTBIN -f 140/251/161 $LIMITRATE -k $1 # audio m4a
