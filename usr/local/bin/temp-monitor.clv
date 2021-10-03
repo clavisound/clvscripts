@@ -5,7 +5,9 @@ TEMP=$(cat /proc/acpi/ibm/thermal | gawk -F" " '{ print $2 }')
 CPU1=$(cat /sys/devices/system/cpu/cpu1/online 2>/dev/null)
 CPUFREQ=$(grep MHz /proc/cpuinfo | gawk -F":" ' { print $2 }' | sed -e N -e 's/\n//')
 # ok for intel SSD 525
-TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '190 Air' | gawk -F' ' ' { print $10 } ')
+#TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '190 Air' | gawk -F' ' ' { print $10 } ')
+# ok for DC3500
+TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '194 Temp' | gawk -F' ' ' { print $10 } ')
 
 grep -q discharging /proc/acpi/battery/BAT0/state 2>/dev/null
 if [ $? -eq 0 ]; then
