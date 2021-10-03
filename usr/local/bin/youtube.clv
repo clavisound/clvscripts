@@ -17,9 +17,9 @@ if [ $2 == "-a" ]; then
 	exit 0
 fi
 
-echo "$YTBIN -f 135 $LIMITRATE -k $1"
+echo "$YTBIN -f 135/18 $LIMITRATE -k $1"
 #-o '%(title)s__%(id).%(ext)s'
-$YTBIN -f 135 $LIMITRATE -k $1
+$YTBIN -f 135/18 $LIMITRATE -k $1
 if [ $? == 1 ]; then
 	$YTBIN -F $LIMITRATE -k $1 | grep audio | tail -1
 	echo "error with video"; exit 1

@@ -36,7 +36,14 @@ killall adb
 killall dhclient
 #killall pulseaudio
 
-for MOUNTS in 300G-nfs 32G-SD-nfs 270G 30g gmx freecom 100g kitrino blue 32G_SD sandisk8g apacer8g wd1 tms 1tbalu 
+umount -a -t -l nfs
+	if [ $? -eq 1 ]; then # device mounted abort!
+		echo "Some nfs device in not unmounting!"
+		xmessage "Unmount nfs mounts!"
+		exit 1
+	fi
+
+for MOUNTS in 270G 30g gmx freecom 100g kitrino blue 32G_SD sandisk8g apacer8g wd1 tms 1tbalu 
 # for MOUNTS in 270G 30g gmx freecom 100g kitrino blue sandisk8g apacer8g wd1 tms 1tbalu
 do
 	echo "unmounting... $MOUNTS"
@@ -105,5 +112,9 @@ modprobe e1000e
 
 sleep 1
 wicd-cli -c -z
-sleep 1
+ping -c 1 korgi
+if [ $? -eq 0 ]; then
+	mount /media/300G-nfs/
+	mount /media/repo-nfs/
+fi
 ntpdate 0.gr.pool.ntp.org
