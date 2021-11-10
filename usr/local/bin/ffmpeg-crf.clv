@@ -8,6 +8,7 @@ OUTFILE=$FILE
 
 if [ "$1" == "" ]; then
 	echo "Usage $0 FILE CROP(576) film/animation/etc CRF(23-18)"
+	echo "CROP 0 do disable crop."
 	exit
 fi
 
