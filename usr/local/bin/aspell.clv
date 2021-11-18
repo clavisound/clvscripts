@@ -1,0 +1,5 @@
+#!/bin/bash
+echo $1 > $TMP/aspell.clv.tmp
+aspell -l el -c $TMP/aspell.clv.tmp
+cat $TMP/aspell.clv.tmp
+rm $TMP/aspell.clv.tmp
