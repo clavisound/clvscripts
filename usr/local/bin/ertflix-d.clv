@@ -3,17 +3,16 @@ YTBIN=${YTBIN:-"youtube-dl"}
 LIMITRATE=${LIMITRATE:-"-r 150k"}
 URL=$1
 
-# https://mediaserve.ert.gr/bpk-vod/vodext/default/memories-of-nanette-ep01/memories-of-nanette-ep01/index.mpd
 FILE=$(echo $URL | sed -e 's+.*default/++g' -e 's+/.*++')
-wget $URL -O $FILE.mpd
+wget -q $URL -O $FILE.mpd
 
 VIDEOQ=$(grep width=.768 $FILE.mpd | gawk -F'"' '{ print $2 }')
 AUDIOQ="audio=128000"
 
 for STREAM in $VIDEOQ $AUDIOQ
 do
-	echo $YTBIN -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
-	$YTBIN -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
+	echo $YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
+	$YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
 done
 
-ffmpeg -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -c copy -y $FILE.mp4
+ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -c copy -y $FILE.mp4
