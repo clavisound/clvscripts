@@ -1,7 +1,18 @@
 #!/bin/bash
+FOLDER=$1
+
+if [ "$FOLDER" == "" ]; then
+	FOLDER=/etc/
+fi
 
 # TODO: compare files. It are the same, abort
 # find /etc/ -name \*.new -exec sh -c 'cmp {} `echo {} | sed 's/.new//'`' \;
 
-find /etc/ -name \*.new -exec sh -c 'vim -d {} `echo {} | sed 's/.new//'`' \;
-find /etc/ -name \*.new -exec sh -c 'mv -bv {} `echo {} | sed 's/.new//'`' \;
+# compare files
+#find /$FOLDER/ -name \*.new -exec sh -c 'vim -d {} `echo {} | sed 's/.new//'`' \;
+
+# move new to old
+# find /$FOLDER/ -name \*.new -exec sh -c 'mv -bv {} `echo {} | sed 's/.new//'`' \;
+
+# new version - all together
+find $FOLDER -name \*.new -exec sh -c 'OLDFILE=`echo {} | sed 's+.new++' ''`; echo $OLDFILE; vim -d {} $OLDFILE; mv -bv {} $OLDFILE' \;
