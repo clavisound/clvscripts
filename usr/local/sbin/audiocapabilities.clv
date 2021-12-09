@@ -2,8 +2,8 @@
 # Pass -r option to remove capabilities
 OPTION=$1
 SETCAPOPTION="cap_ipc_lock,cap_sys_nice=ep"
-BINARIES="wine jackd qjackctl hydrogen qtractor pianoteq3 pianoteq4 pianoteq5 qmmp fst.exe fst.exe.so qsynth fluidsynth jack_capture renoise lmms"
-LIBRARIES="fsthost.exe.so"
+BINARIES="wine jackd qjackctl hydrogen qtractor pianoteq3 pianoteq4 pianoteq5 qmmp fst.exe fst.exe.so qsynth fluidsynth jack_capture renoise lmms carla carla-single carla-jack-single carla-jack-multi"
+LIBRARIES="fsthost.exe.so carla/jack/libjack.so.0" # TODO: carla/*
 
 if [ "$OPTION" = "-r" ]; then
 	SETCAPOPTION="-r"
@@ -14,15 +14,14 @@ if [ "$OPTION" != "-r" ]; then
 	SETCAPOPTION="cap_ipc_lock,cap_sys_nice=ep"
 fi
 
-
 function dothejob() {
 for BIN in $2
 do
-	if [ -e $PATH/$BIN ]; then
+	if [ -x $PATH/$BIN ]; then
 		/sbin/setcap $SETCAPOPTION $PATH/$BIN
 		echo -e "setcap $SETCAPOPTION $PATH/$BIN"
 	else
-		echo -e "Ignored: \t*$BIN*\t Absent from $PATH"
+		echo -e "Ignored: \t$BIN\t Absent from $PATH"
 	fi
 done
 }
@@ -31,5 +30,20 @@ PATH=/usr/bin
 dothejob $PATH "$BINARIES"
 PATH=/usr/lib/wine
 dothejob $PATH "$LIBRARIES"
+PATH=/usr/lib64/
+dothejob $PATH "$LIBRARIES"
+
+# all of carla
+if [ -e /usr/lib64/carla ]; then
+	for i in /usr/lib64/carla/*
+	do
+		if [ -x $i ]; then
+			/sbin/setcap $SETCAPOPTION $i
+			echo "/sbin/setcap $SETCAPOPTION $i"
+		fi
+	done
+fi
+
 
 echo "Pass -r option to remove capabilities from the above files."
+
