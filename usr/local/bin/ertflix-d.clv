@@ -1,4 +1,14 @@
 #!/bin/bash
+if [ "$1" = "" ]; then
+	echo "Usage: $0 FILE.mpd"
+	echo "Options: YTBIN=binary LIMITRATE="-r 400k""
+	exit 1
+fi
+
+if [ "$2" = "-t" ]; then
+	echo "Testing, only echo"
+fi
+
 YTBIN=${YTBIN:-"youtube-dl"}
 LIMITRATE=${LIMITRATE:-"-r 150k"}
 URL=$1
@@ -7,12 +17,18 @@ FILE=$(echo $URL | sed -e 's+.*default/++g' -e 's+/.*++')
 wget -q $URL -O $FILE.mpd
 
 VIDEOQ=$(grep width=.768 $FILE.mpd | gawk -F'"' '{ print $2 }')
-AUDIOQ="audio=128000"
+#AUDIOQ="audio=128000"
+AUDIOQ=$(grep minBand $FILE.mpd | grep audio | gawk -F'"' '{ print $7 $8 }' | sed -e 's+minBandwidth+audio+')
 
 for STREAM in $VIDEOQ $AUDIOQ
 do
 	echo $YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
-	$YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
+	if [ "$2" = "" ]; then
+		$YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
+	fi
 done
 
-ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -c copy -y $FILE.mp4
+echo ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -c copy -y $FILE.mp4
+if [ "$2" = "" ]; then
+	ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -c copy -y $FILE.mp4
+fi	
