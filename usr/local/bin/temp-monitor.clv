@@ -1,7 +1,11 @@
 #!/bin/bash
 # Ok for ThinkPad
 FAN=`grep speed: /proc/acpi/ibm/fan`
-TEMP=$(cat /proc/acpi/ibm/thermal | gawk -F" " '{ print $2 }')
+THERMAL=$(cat /proc/acpi/ibm/thermal)
+TEMP=$(echo $THERMAL | gawk -F" " '{ print $2 }')
+GPU=$(echo $THERMAL | gawk -F" " '{ print $5 }')
+BAT=$(echo $THERMAL | gawk -F" " '{ print $6 }')
+PCMCIA=$(echo $THERMAL | gawk -F" " '{ print $4 }')
 CPU1=$(cat /sys/devices/system/cpu/cpu1/online 2>/dev/null)
 CPUFREQ=$(grep MHz /proc/cpuinfo | gawk -F":" ' { print $2 }' | sed -e N -e 's/\n//')
 # ok for intel SSD 525
@@ -30,6 +34,15 @@ echo -n $FAN
 echo_comma
 
 echo -n cpu: ${TEMP}c
+echo_comma
+
+echo -n gpu: ${GPU}c
+echo_comma
+
+echo -n PCMCIA: ${PCMCIA}c
+echo_comma
+
+echo -n bat: ${BAT}c
 echo_comma
 
 echo -n ssd: ${TEMPSSD}c

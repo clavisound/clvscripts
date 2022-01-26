@@ -36,7 +36,7 @@ killall adb
 killall dhclient
 #killall pulseaudio
 
-umount -a -t -l nfs
+umount -a -t nfs -l
 	if [ $? -eq 1 ]; then # device mounted abort!
 		echo "Some nfs device in not unmounting!"
 		xmessage "Unmount nfs mounts!"
@@ -91,8 +91,10 @@ fi
 
 #/sbin/modprobe pvrusb2
 
-`cat /tmp/after_hibernate`
-rm -f /tmp/after_hibernate
+if [ -e /tmp/after_hibernate ]; then
+	`cat /tmp/after_hibernate`
+	rm -f /tmp/after_hibernate
+fi
 
 if [ -x /etc/rc.d/rc.krg ]; then
 	/etc/rc.d/rc.krg 
@@ -102,8 +104,23 @@ fi
 echo "disabling 3g"
 echo disable > /proc/acpi/ibm/wan
 
+if [ -x /etc/rc.d/rc.clv_network ]; then
+	/etc/rc.d/rc.clv_network
+fi
+
+if [ -x /etc/rc.d/rc.networkmanager ]; then
+	echo -n "nmcli n on, waiting for connection."
+	nmcli n on
+	for i in $(seq 20)
+	do
+		echo -n "$i "
+		sleep 1
+	done
+fi
+
+
 #/usr/sbin/ip.clv wpathomson
-sleep 1
+#sleep 1
 # /sbin/iwconfig wlan0 essid clavisound2.gr ap 00:26:44:79:FB:3C
 # /sbin/iwconfig wlan0 essid clavisound.gr ap 00:1E:74:B0:7F:F8
 # /etc/rc.d/rc.inet1 restart
@@ -111,10 +128,11 @@ sleep 1
 modprobe e1000e
 
 sleep 1
-wicd-cli -c -z
-ping -c 1 korgi
+ping -c 1 in.gr
 if [ $? -eq 0 ]; then
-	mount /media/300G-nfs/
-	mount /media/repo-nfs/
+	ntpdate 0.gr.pool.ntp.org
+else
+	echo "No Internet"
 fi
-ntpdate 0.gr.pool.ntp.org
+
+mount-nfs.clv.priv
