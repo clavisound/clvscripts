@@ -1,7 +1,9 @@
 #!/bin/bash
 # TODO: Variables via file
-HIBERNATION=${HIBERNATION:-/dev/sda8}
-ROOTFS=${ROOTFS:-/dev/sda1}
+#HIBERNATION=${HIBERNATION:-/dev/sda8}
+HIBERNATION=$(grep resume /etc/lilo.conf | head -1 | sed -e 's+.*resume=++' -e 's+ .*++')
+#ROOTFS=${ROOTFS:-/dev/sda1}
+ROOTFS=$(grep root /etc/lilo.conf | head -1 | sed -e 's+root.*/d+/d+' -e 's+ .*/dev+/dev+')
 SOURCE=`pwd`
 unset ARCH
 #if [ "$ARCH" = i686 ]; then # for personal use
