@@ -1,0 +1,92 @@
+#!/bin/bash
+RATE=150000
+# https://cdn.kernel.org/pub/linux/kernel/v5.x/patch-5.16.13.xz
+URL="https://cdn.kernel.org/pub/linux/kernel"
+PATCHFOLDER=${PATCHFOLDER:-~/src/kernel/patches/incr/}
+mkdir -p $PATCHFOLDER
+
+completeversion=$1
+lastversion=$2
+COMMAND=$3
+lastdigit=`echo $1 | awk -F"." '{ print $3 }'`		# grabs the last digit
+majorversion=`echo $1 | awk -F"." '{ print $1"."$2 }'`	# grabs major version ie: 3.0
+bigversion=`echo $1 | awk -F"." '{ print $1".x" }'`	# grabs big version ie: 3.x
+
+function RemoteVersion(){
+	echo "I will try to find the latest patched version for YOUR kernel"
+	lastdigit=`echo $yourversion | awk -F"." '{ print $3 }' | sed 's/\(...\)\(.*\)/\1/'` # grabs the last digit
+	majorversion=`echo $yourversion | awk -F"." '{ print $1"."$2 }'` # grabs major version ie: 3.0
+	masterversion=`echo $yourversion | awk -F"." '{ print $1 }'` # grabs big version ie: 3.x
+	echo "YOUR version is: $majorversion.$lastdigit"
+	netversion=$(curl -s https://kernel.org | grep strong | grep $majorversion | sed -e "s+.*$majorversion+$majorversion+" -e 's+</.*++' -e 's+.*\.++')
+	echo "Try $0 $majorversion.$lastdigit $netversion"
+	exit 1
+}
+
+function usage(){
+	echo "Error: I need the the version number to stop."
+	echo "Syntax is sh $0 3.0.1 18"
+	echo "Add -p at the end to apply the allready downloaded patches"
+	echo
+	echo "Base url is $URL"
+}
+
+if [ "$2" == "" ] && [ "$completeversion" == "" ]; then
+	usage
+	yourversion=$(uname -r)
+	RemoteVersion $yourversion
+fi
+
+if [ "$2" == "" ] && [ "$completeversion" != "" ]; then
+	usage
+	yourversion=$completeversion
+	RemoteVersion $yourversion
+fi
+
+# if latest revision = 1 then different link..
+function wgetpatch (){
+while [ ${lastdigit} -lt ${lastversion} ]; do
+	if [ ${lastdigit} == 1 ]; then
+		$COMMAND $URL/v$bigversion/patch-${majorversion}.${lastdigit}.xz
+	fi
+		let currentdown=${lastdigit}+1
+		# download the patch
+		$COMMAND $URL/v$bigversion/incr/patch-${majorversion}.${lastdigit}-${currentdown}.xz
+		echo $COMMAND $URL/v$bigversion/incr/patch-${majorversion}.${lastdigit}-${currentdown}.xz
+		# download ChangeLog
+		$COMMAND $URL/v$bigversion/ChangeLog-${majorversion}.${currentdown}
+		let lastdigit=lastdigit+1
+done
+}
+
+function applypatch (){
+# Are we in kernel sources?
+if [ ! -e Kbuild ];  then
+	echo "I am not sure if I am in your kernel source directory. Aborting."
+	# cd /usr/src/linux/
+	exit 1
+fi
+
+while [ ${lastdigit} -lt ${lastversion} ]; do
+	if [ ${lastdigit} == 1 ]; then
+		xzcat $PATCHFOLDER/patch-${majorversion}.${lastdigit}.xz | $COMMAND
+	fi
+		let currentdown=${lastdigit}+1
+		# apply the patch
+		xzcat $PATCHFOLDER/patch-${majorversion}.${lastdigit}-${currentdown}.xz | $COMMAND
+		echo "xzcat $PATCHFOLDER/patch-${majorversion}.${lastdigit}-${currentdown}.xz"
+		sleep 3
+		let lastdigit=lastdigit+1
+done
+}
+
+if [ "$3" == "-p" ]; then
+	echo "Patching."
+	COMMAND="patch -p 1"
+	applypatch
+else
+	COMMAND="wget -c --limit-rate $RATE"
+	cd $PATCHFOLDER
+	wgetpatch
+fi
+
