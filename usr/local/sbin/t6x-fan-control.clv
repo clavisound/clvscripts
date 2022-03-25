@@ -1,0 +1,71 @@
+#!/bin/bash
+# Sometimes my FAN is always on
+# This is manual control of the fan
+# ATTENTION: I use this script also with an external fan connected to a USB via ultrabase
+
+SLEEPSECS=10
+
+trap enablefan SIGINT
+
+function enablefan()
+{
+	echo "Exiting, enabling fan.."
+	uhubctl -l 1-4.4 -p 2 -a on
+	echo enable > /proc/acpi/ibm/fan 
+	echo level auto > /proc/acpi/ibm/fan
+	exit 0
+}
+
+# external connected to USB dock
+uhubctl -l 1-4.4 -p 2 -a on
+echo enable > /proc/acpi/ibm/fan 
+echo level auto > /proc/acpi/ibm/fan
+STATUSFAN=1
+
+while true
+do
+# read the FAN RPM
+FANRPM=$(grep speed: /proc/acpi/ibm/fan | sed 's/speed:\t\t//')
+TEMP=$(cat /proc/acpi/ibm/thermal | gawk -F" " '{ print $2 }')
+echo -n "$TEMP, "
+
+# if more than 6.000 system probably is out-of-spec
+if [ $FANRPM -gt 6000 ] || [ $TEMP -gt 55 ]; then
+	# got to MAX
+	echo level 7 > /proc/acpi/ibm/fan
+	# give some time
+	sleep 3
+	# reset to default
+	echo level auto > /proc/acpi/ibm/fan
+fi
+
+#if [ $FANRPM -gt 1000 ] && [ $TEMP -lt 48 ]; then
+if [ $TEMP -lt 46 ]; then # was 51 for internal fan
+	if [ $STATUSFAN -eq 0 ]; then
+		echo "Fan already disabled. Temp: $TEMP"
+	else
+		if [ "$1" == -v ]; then
+			echo "disabling fan"
+		fi
+		date +%T
+		uhubctl -l 1-4.4 -p 2 -a off
+		echo level 0 > /proc/acpi/ibm/fan
+		STATUSFAN=0
+	fi
+fi
+
+if [ $TEMP -gt 48 ]; then # was 53 with internal fan
+	if [ $STATUSFAN -eq 1 ]; then
+		echo "Fan already enabled. Temp: $TEMP"
+	else
+		if [ "$1" == -v ]; then
+			echo "enabling fan: Temp: $TEMP"
+		fi
+		date +%T
+		uhubctl -l 1-4.4 -p 2 -a on
+		echo level auto > /proc/acpi/ibm/fan
+		STATUSFAN=1
+	fi
+fi
+sleep $SLEEPSECS
+done
