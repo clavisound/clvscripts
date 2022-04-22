@@ -7,7 +7,8 @@ FILE=/var/log/iOS.GasGauge
 MESSAGE=$(ideviceinfo --simple | grep DeviceName)
 MESSAGE+=","
 MESSAGE+=`date -R`
-for i in $(idevicediagnostics diagnostics GasGauge | grep integer | sed -e 's+.*<integer>+,+' -e 's+</int.*++')
+idevicediagnostics diagnostics GasGauge 1> $TMP/gasgauge.temp
+for i in $(cat $TMP/gasgauge.temp | grep integer | sed -e 's+.*<integer>+,+' -e 's+</int.*++')
 do
 	MESSAGE+=$i
 done
