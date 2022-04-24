@@ -4,6 +4,7 @@
 # ATTENTION: I use this script also with an external fan connected to a USB via ultrabase
 
 SLEEPSECS=10
+BROKENFAN=1
 
 trap enablefan SIGINT
 
@@ -18,29 +19,36 @@ function enablefan()
 
 # external connected to USB dock
 uhubctl -l 1-4.4 -p 2 -a on
-echo enable > /proc/acpi/ibm/fan 
-echo level auto > /proc/acpi/ibm/fan
+if [ $BROKENFAN == 1 ]; then # Broken FAN: disable
+	echo disable > /proc/acpi/ibm/fan 
+	echo level 0 > /proc/acpi/ibm/fan
+else
+	echo enable > /proc/acpi/ibm/fan 
+	echo level auto > /proc/acpi/ibm/fan
+fi
 STATUSFAN=1
 
 while true
-do
-# read the FAN RPM
-FANRPM=$(grep speed: /proc/acpi/ibm/fan | sed 's/speed:\t\t//')
-TEMP=$(cat /proc/acpi/ibm/thermal | gawk -F" " '{ print $2 }')
-echo -n "$TEMP, "
+	do
+	# read the FAN RPM
+	FANRPM=$(grep speed: /proc/acpi/ibm/fan | sed 's/speed:\t\t//')
+	TEMP=$(cat /proc/acpi/ibm/thermal | gawk -F" " '{ print $2 }')
+	echo -n "$TEMP, "
 
-# if more than 6.000 system probably is out-of-spec
-if [ $FANRPM -gt 6000 ] || [ $TEMP -gt 55 ]; then
-	# got to MAX
-	echo level 7 > /proc/acpi/ibm/fan
-	# give some time
-	sleep 3
-	# reset to default
-	echo level auto > /proc/acpi/ibm/fan
+if [ $BROKENFAN == 0 ]; then # Broken FAN: disable
+	# if more than 6.000 system probably is out-of-spec
+	if [ $FANRPM -gt 6000 ] || [ $TEMP -gt 55 ]; then
+		# got to MAX
+		echo level 7 > /proc/acpi/ibm/fan
+		# give some time
+		sleep 3
+		# reset to default
+		echo level auto > /proc/acpi/ibm/fan
+	fi
 fi
 
 #if [ $FANRPM -gt 1000 ] && [ $TEMP -lt 48 ]; then
-if [ $TEMP -lt 46 ]; then # was 51 for internal fan
+if [ $TEMP -lt 40 ]; then # was 51 for internal fan, 46 for external (clv)
 	if [ $STATUSFAN -eq 0 ]; then
 		echo "Fan already disabled. Temp: $TEMP"
 	else
@@ -54,7 +62,7 @@ if [ $TEMP -lt 46 ]; then # was 51 for internal fan
 	fi
 fi
 
-if [ $TEMP -gt 48 ]; then # was 53 with internal fan
+if [ $TEMP -gt 44 ]; then # was 53 with internal fan, 48 with external fan (clv)
 	if [ $STATUSFAN -eq 1 ]; then
 		echo "Fan already enabled. Temp: $TEMP"
 	else
@@ -63,7 +71,11 @@ if [ $TEMP -gt 48 ]; then # was 53 with internal fan
 		fi
 		date +%T
 		uhubctl -l 1-4.4 -p 2 -a on
-		echo level auto > /proc/acpi/ibm/fan
+		if [ $BROKENFAN == 0 ]; then # Broken FAN: disable
+			echo level 0 > /proc/acpi/ibm/fan
+		else
+			echo level auto > /proc/acpi/ibm/fan
+		fi
 		STATUSFAN=1
 	fi
 fi
