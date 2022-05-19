@@ -62,8 +62,12 @@ function installkernel (){
 	grep -q CONFIG_64BIT=y $SOURCE/.config
 	if [ $? -eq 0 ]; then
 		cp -p arch/x86_64/boot/bzImage /boot/bzImage-$MYRELEASE
+		# for grub
+		cd /boot/; rm bzImage-clv; ln -s bzImage-$MYRELEASE bzImage-clv; cd
 	else
 		cp -p arch/i386/boot/bzImage /boot/bzImage-$MYRELEASE
+		# for grub
+		cd /boot/; rm bzImage-clv; ln -s bzImage-$MYRELEASE bzImage-clv; cd
 	fi
 }
 
@@ -80,6 +84,10 @@ function installlilo (){
 	lilo
 }
 
+function installgrub (){
+	grub-install /dev/sda
+}
+
 function targzkernel (){
 	tar rvf /root/kernel-$MYRELEASE.tar /boot/config-$MYRELEASE /boot/System.map-$MYRELEASE /boot/bzImage-$MYRELEASE /lib/modules/$MYRELEASE
 	gzip /root/kernel-$MYRELEASE.tar
@@ -94,6 +102,7 @@ if [ "$1" == "-t" ]; then
 		installmodules
 		installkernel
 		installlilo
+		installgrub
 fi
 
 echo "Syncing all disks."
