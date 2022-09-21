@@ -1,22 +1,10 @@
 #!/bin/bash
 # By Michales Michaloudes (clavisound). Use it for good cause and
 # Use it at your own risk
-
-
 if [ ! -r /sys/class/power_supply/BAT0/uevent ]; then
 	echo "Your kernel does not report battery statistics, or you don't have a laptop :)"
-	echo "Will try 2nd method."
-else
-	METHOD=1
-fi	
-
-if [ ! -r /sys/bus/acpi/drivers/battery ]; then
-	echo "2nd method failed."
 	exit
-else
-	METHOD=2
-fi
-
+fi	
 
 echo_comma (){
 echo -n ','
@@ -30,39 +18,26 @@ echo_comma
 echo -n $LOADAVG
 echo_comma
 
-method_a (){
-	for I in ENERGY_FULL= POWER_NOW SUPPLY_STATUS ENERGY_NOW
-	do
-		IUEVENT=$(grep $I /sys/class/power_supply/BAT0/uevent)
-		IUEVENT_TRIM_ZEROS=$(echo $IUEVENT | sed -e 's/000,/,/g' -e 's/000$//g')
-		echo -n $IUEVENT_TRIM_ZEROS
-		if [ "$I" = "ENERGY_NOW" ]; then
-			echo
-		else
-			echo_comma 
-		fi
-	done
-}
+for I in ENERGY_FULL= POWER_NOW SUPPLY_STATUS ENERGY_NOW
+do
+	IUEVENT=$(grep $I /sys/class/power_supply/BAT0/uevent)
+	IUEVENT_TRIM_ZEROS=$(echo $IUEVENT | sed -e 's/000,/,/g' -e 's/000$//g')
+	echo -n $IUEVENT_TRIM_ZEROS
+	if [ "$I" = "ENERGY_NOW" ]; then
+		echo
+	else
+		echo_comma 
+	fi
+done
 
-method_b (){
-	for I in ENERGY_FULL= POWER_NOW SUPPLY_STATUS ENERGY_NOW
-	do
-		IUEVENT=$(grep $I /sys/bus/acpi/drivers/battery/PNP*/power_supply/BAT?/uevent)
-		IUEVENT_TRIM_ZEROS=$(echo $IUEVENT | sed -e 's/000,/,/g' -e 's/000$//g')
-		echo -n $IUEVENT_TRIM_ZEROS
-		if [ "$I" = "ENERGY_NOW" ]; then
-			echo
-		else
-			echo_comma 
-		fi
-	done
-}
-
-
-# check battery
-if [ $METHOD == 1 ]; then
-	method_a
-else
-	method_b
+if [ "$1" = "-v" ]; then # verbose
+#	grep -q Discharging /sys/class/power_supply/BAT0/status
+#	if [ $? = 0 ]; then
+		POWERNOW=$(cat /sys/class/power_supply/BAT0/power_now)
+		ENERGYNOW=$(cat /sys/class/power_supply/BAT0/energy_now)
+		HOURS=$(echo $ENERGYNOW / $POWERNOW | bc -l | cut -c 1-3)
+		echo Hours Remaining: $HOURS
+#	else
+#		echo "Not discharging."
+#	fi
 fi
-
