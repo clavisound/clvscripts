@@ -1,22 +1,50 @@
 #!/bin/bash
-# Ok for ThinkPad
-FAN=`grep speed: /proc/acpi/ibm/fan`
-THERMAL=$(cat /proc/acpi/ibm/thermal)
-TEMP=$(echo $THERMAL | gawk -F" " '{ print $2 }')
-GPU=$(echo $THERMAL | gawk -F" " '{ print $5 }')
-BAT=$(echo $THERMAL | gawk -F" " '{ print $6 }')
-PCMCIA=$(echo $THERMAL | gawk -F" " '{ print $4 }')
+# Ok for Thinkpad X61/T61
+#FAN=`grep speed: /proc/acpi/ibm/fan`
+#THERMAL=$(cat /proc/acpi/ibm/thermal)
+# Yoga-11s
+FAN="NaN"
+THERMAL=$(cat /sys/devices/virtual/thermal/thermal_zone0/temp | sed 's+...$++')
+
+# ok for ThinkPads
+#TEMP=$(echo $THERMAL | gawk -F" " '{ print $2 }')
+#GPU=$(echo $THERMAL | gawk -F" " '{ print $5 }')
+#BAT=$(echo $THERMAL | gawk -F" " '{ print $6 }')
+#PCMCIA=$(echo $THERMAL | gawk -F" " '{ print $4 }')
+
+# yoga 11s
+TEMP=$THERMAL
+GPU="NaN"
+BAT="NaN"
+PCMCIA="NaN"
+
+
 CPU1=$(cat /sys/devices/system/cpu/cpu1/online 2>/dev/null)
 CPUFREQ=$(grep MHz /proc/cpuinfo | gawk -F":" ' { print $2 }' | sed -e N -e 's/\n//')
 # ok for intel SSD 525
 #TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '190 Air' | gawk -F' ' ' { print $10 } ')
 # ok for DC3500
-TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '194 Temp' | gawk -F' ' ' { print $10 } ')
+#TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '194 Temp' | gawk -F' ' ' { print $10 } ')
+# ok for Samsung MZMTD256HAGM
+TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep 'Tempera' | gawk -F' ' ' { print $10 } ')
 
-grep -q discharging /proc/acpi/battery/BAT0/state 2>/dev/null
-if [ $? -eq 0 ]; then
-	MILLIWATTS=$(grep 'present rate' /proc/acpi/battery/BAT0/state | gawk -F" " '{ print $3 }')
+# ok for thinkpads
+#grep -q discharging /proc/acpi/battery/BAT0/state 2>/dev/null
+#if [ $? -eq 0 ]; then
+#	MILLIWATTS=$(grep 'present rate' /proc/acpi/battery/BAT0/state | gawk -F" " '{ print $3 }')
+#else
+#	MILLIWATTS=NaN
+#fi
+
+# Yoga 11s
+SUPPLYSTATUS=$(grep SUPPLY_STATUS /sys/class/power_supply/BAT1/uevent | sed 's+.*=++')
+if [ "$SUPPLYSTATUS" == "Charging" ]; then
+	print "here"
+	MILLIWATTS="+"
+else
+	MILLIWATTS="-"
 fi
+MILLIWATTS+=$(grep POWER_NOW /sys/class/power_supply/BAT1/uevent | sed -e 's+.*=++' -e 's+...$++')
 
 echo_comma (){
 	echo -n ', '
