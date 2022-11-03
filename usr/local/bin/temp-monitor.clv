@@ -39,7 +39,6 @@ TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep 'Tempera' | gawk -F' ' ' { 
 # Yoga 11s
 SUPPLYSTATUS=$(grep SUPPLY_STATUS /sys/class/power_supply/BAT1/uevent | sed 's+.*=++')
 if [ "$SUPPLYSTATUS" == "Charging" ]; then
-	print "here"
 	MILLIWATTS="+"
 else
 	MILLIWATTS="-"

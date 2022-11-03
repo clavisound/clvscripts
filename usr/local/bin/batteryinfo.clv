@@ -1,7 +1,7 @@
 #!/bin/bash
 # By Michales Michaloudes (clavisound). Use it for good cause and
 # Use it at your own risk
-if [ ! -r /sys/class/power_supply/BAT0/uevent ]; then
+if [ ! -r /sys/class/power_supply/BAT1/uevent ]; then
 	echo "Your kernel does not report battery statistics, or you don't have a laptop :)"
 	exit
 fi	
@@ -20,7 +20,7 @@ echo_comma
 
 for I in ENERGY_FULL= POWER_NOW SUPPLY_STATUS ENERGY_NOW
 do
-	IUEVENT=$(grep $I /sys/class/power_supply/BAT0/uevent)
+	IUEVENT=$(grep $I /sys/class/power_supply/BAT1/uevent)
 	IUEVENT_TRIM_ZEROS=$(echo $IUEVENT | sed -e 's/000,/,/g' -e 's/000$//g')
 	echo -n $IUEVENT_TRIM_ZEROS
 	if [ "$I" = "ENERGY_NOW" ]; then
@@ -31,12 +31,12 @@ do
 done
 
 if [ "$1" = "-v" ]; then # verbose
-	POWERNOW=$(cat /sys/class/power_supply/BAT0/power_now)
+	POWERNOW=$(cat /sys/class/power_supply/BAT1/power_now)
 	if [ $POWERNOW = 0 ]; then
 		echo "Battery charged."
 		exit 0
 	fi
-	ENERGYNOW=$(cat /sys/class/power_supply/BAT0/energy_now)
+	ENERGYNOW=$(cat /sys/class/power_supply/BAT1/energy_now)
 	HOURS=$(echo $ENERGYNOW / $POWERNOW | bc -l | cut -c 1-3)
 	echo Hours Remaining: $HOURS
 fi
