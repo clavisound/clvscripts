@@ -1,26 +1,46 @@
 #!/bin/bash
 
 LORA_FORWARDER_FOLDER=/var/lora_pkt_fwd
-LOGFOLDER=/media/32G_SD/lora/
+LOGFOLDER=/var/log/
 ACM=$1
 
 if [ "$ACM" == '' ]; then
 	ACM=0
 fi
 
+killLora()
+{
+	echo -n "Start Killing..."
+	killall -9 lora_pkt_fwd
+	echo "done killing."
+	sudo /sbin/modprobe -vr cdc_acm
+	sleep 1
+	sudo /sbin/modprobe -v cdc_acm
+	sleep 1
+}
+
+killLora
+
 # check for existing lora
 PIDLORAPKTFWD=$(ps -eo pid,command | grep -E '[0-9] lora_pkt_fwd' | sed -e 's+ lora.*++' -e 's+ ++')
 
 startLoRa(){
+	echo starting LoRa
 	checkforACM
 	if [ $? == 0 ]; then
 		echo "Waiting 25 seconds to make sure device is up"
-		sleep 25
+		for i in `seq 1 25`
+		do
+			echo -n "$i, "
+			sleep 1
+		done
 		echo "LoRa starting.."
 		cd $LORA_FORWARDER_FOLDER
-		lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log
+		lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log &
+		exit 0
 	else
 		echo "We expect LoRa concentrator on ACM$ACM"
+		ls -l /dev/ttyACM*
 		echo "You can try as root modprobe -r cdc_acm; modprobe cdc_acm if the only cdc_acm device is the LoRa concentrator"
 		exit 1
 	fi
@@ -37,13 +57,19 @@ checkforACM(){
 
 # we don't run lora, run it
 if [ "$PIDLORAPKTFWD" == "" ]; then
-#	echo "No lora_pkt_fwd running"
+	echo "No lora_pkt_fwd running"
+	startLoRa
+fi
+
+# we don't run lora, run it
+if [ -v $PIDLORAPKTFWD ]; then
+	echo "No lora_pkt_fwd running #2"
 	startLoRa
 fi
 
 # we run lora, close it
-if [ $PIDLORAPKTFWD -gt 0 ]; then
+if [  $PIDLORAPKTFWD -gt 0 ]; then
 	echo "We kill lora_pkt_fwd"
-	kill -9 $PIDLORAPKTFWD
 	startLoRa
 fi
+exit
