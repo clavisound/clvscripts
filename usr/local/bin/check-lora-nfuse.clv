@@ -1,0 +1,41 @@
+#!/bin/bash
+
+start_lora()
+{
+	bash /usr/local/bin/lora-nfuse-start.clv
+	STATUSNFUSESTART=$?
+	echo "status nfuse start $STATUSNFUSESTART"
+	if [ $STATUSNFUSESTART -eq 1 ]; then
+		bash /usr/local/bin/lora-nfuse-start.clv 1
+	fi
+}
+
+LORA_CPU=$(ps -eo pcpu,fname | grep lora_pkt | sed 's+ lora_pkt++')
+if [ "$LORA_CPU" == "" ]; then
+	echo "No CPU usage: $LORA_CPU from lora_pkt process found"
+	start_lora
+	exit
+fi
+
+CPU_USAGE=$(echo $LORA_CPU \* 10 | bc -l | sed 's+\.0++')
+if [ "$CPU_USAGE" == "" ]; then
+	echo "No lora_pkt_fwd process."
+	start_lora
+	exit
+fi
+
+if [ $CPU_USAGE -gt 80 ]; then
+	echo More than 80, pcpu: $CPU_USAGE
+	echo "restarting lora CPU: $CPU_USAGE" | mail -s "LoRa HANG!" `whoami` 
+	start_lora
+	exit
+fi
+
+cat /var/log/lora.log | tail -9 | grep -q "CRC_OK: 0\.00.*CRC_FAIL: 0\.00.*NO_CRC: 0\.00"
+if [ $? -eq 0 ]; then
+	echo Concentrator hang. No CRC reporting.
+	echo "restarting lora_packet_fwd" | mail -s "Zero LoRa packets. Probably hang." `whoami` 
+	start_lora
+	exit
+fi
+
