@@ -1,6 +1,8 @@
 #!/bin/bash
 XMESSAGEOPTIONS="-timeout 3"
 USERNICE=$1
+XAUTHORITY="/home/krg/.Xauthority"
+DISPLAY=":0.0"
 
 if [ ! "`id -u`" = "0" ]; then
  	echo "You need to run this as root or with sudo."	
@@ -17,6 +19,8 @@ function autopriority_X (){
 		USERNICE=19	
 	fi
 	echo "Current priority of X is: $CURRENTNICE. New priority is $USERNICE."
+	TEXT="\"Old X priority: $CURRENTNICE. New X: $USERNICE.\""
+	su - krg -c "notify-send -u normal -t 3000 $TEXT"
 }
 if [ "$USERNICE" = "" ]; then
 	echo "You didn't gave me a value. Autoconfigurating."
@@ -35,14 +39,15 @@ fi
 
 # X is in low priority, give jack the best priority
 # TODO: check for jack existence..
-function jack-rt(){
+function jack_rt(){
 if [ $USERNICE == 19 ]; then
-	renice -19 -p `sudo /sbin/pidof jackd` || 
-	/usr/bin/xmessage $XMESSAGEOPTIONS jackd is on highest priority
-else
-	/usr/bin/xmessage $XMESSAGEOPTIONS jackd is off..
+	renice -19 -p `sudo /sbin/pidof jackd`
+	$TEXT="\"jackd is on highest priority\""
+	su - krg -c "notify-send -u normal -t 3000 $TEXT"
 fi
 }
 
 renice $USERNICE -p `sudo /sbin/pidof Xorg`
 echo "renice $USERNICE -p `sudo /sbin/pidof Xorg`"
+TEXT="\"New X: $USERNICE.\""
+su - krg -c "notify-send -u normal -t 3000 $TEXT"

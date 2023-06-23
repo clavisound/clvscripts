@@ -1,7 +1,8 @@
 #!/bin/bash
+# This works only with NBG (National Bank of Greece) receipt.
 
 if [ "$2" == "" ]; then
-	echo "Usage $0 taxis-payment-file.pdf nbg-payment.pdf"
+	echo "Usage $0 taxis-file.pdf nbg-payment.pdf"
 	exit
 fi
 

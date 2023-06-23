@@ -31,6 +31,10 @@ cd $LOCALSBO
 
 echo find $REPO_ROOT/$REPO_NAME/$REPO_BRANCH -name $PRGNAM.tar.gz -maxdepth 2 -mindepth 2
 TARSBO=$(find $REPO_ROOT/$REPO_NAME/$REPO_BRANCH -name $PRGNAM.tar.gz -maxdepth 2 -mindepth 2)
+if [ ! -e $TARSBO ]; then
+	echo error TARSBO: $TARSBO
+	exit 1
+fi
 tar xzvf $TARSBO
 
 cd $PRGNAM
