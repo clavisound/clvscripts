@@ -18,14 +18,21 @@ if [ "$LORA_CPU" == "" ]; then
 fi
 
 CPU_USAGE=$(echo $LORA_CPU \* 10 | bc -l | sed 's+\.0++')
+
+# if DEBUG print some values
+if [ "$1" == "-d" ]; then
+	echo USAGE: ${CPU_USAGE}% CPU: $LORA_CPU
+fi
+
 if [ "$CPU_USAGE" == "" ]; then
 	echo "No lora_pkt_fwd process."
 	start_lora
 	exit
 fi
 
-if [ $CPU_USAGE -gt 80 ]; then
-	echo More than 80, pcpu: $CPU_USAGE
+# BUG? top says 100% but ps says 37-40 CPU usage
+if [ $CPU_USAGE -gt 30 ]; then
+	echo More than 30, pcpu: $CPU_USAGE
 	echo "restarting lora CPU: $CPU_USAGE" | mail -s "LoRa HANG!" `whoami` 
 	start_lora
 	exit
