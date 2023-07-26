@@ -22,7 +22,7 @@ mount -t proc none $NEWROOT/proc
 DEV=proc; checkError $DEV
 mount -o bind /dev $NEWROOT/dev
 DEV=dev; checkError $DEV
-mount -o bind /dev $NEWROOT/sys
+mount -o bind /sys $NEWROOT/sys
 DEV=sys; checkError $DEV
 
 # chroot
