@@ -11,4 +11,7 @@ if [ -e ~/iOS/user-area/DCIM/100APPLE ]; then
 	        echo "rsync device: $IDEVICE to ~/iOS/bck/$IDEVICE/user-area/$IFOLDERS"
 		rsync -av ~/iOS/user-area/$IFOLDERS ~/iOS/bck/$IDEVICE/user-area/
 	done
+else
+	echo "folder iOS/user-area/DCIM/100APPLE not mounted."
+	exit 1
 fi
