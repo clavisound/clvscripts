@@ -42,38 +42,41 @@ DEVEUI=$3
 DEVADDR=$4
 APPSKEY=$5
 NETSKEY=$6
-if [ $8 > 15 ]; then
+JOINEUI=$6
+FCNT=$7
+RXDELAY=$8
+if [ $RXDELAY -gt 15 ]; then
 	RXDELAY=15
 else
 	RXDELAY=$8
 fi
+
+# EVAL for force session key from device to server.
 SESKEY=$9
-if [ "$9" != "" ]; then
+if [ "$SESKEY" != "" ]; then
 	SESKEY="--session.keys.f-nwk-s-int-key.key $9"
 fi
 
-if [ "$4" != "OTAA" ] && [ "$7" == "16" ]; then
+if [ "$4" != "OTAA" ] && [ "$FCNT" == "16" ]; then
 	echo "16 bit counters ABP"
-	COMMANDTOEXEC="ttn-lw-cli dev create $APP $DEV --dev-eui $DEVEUI --frequency-plan-id EU_863_870_TTN \
+	COMMANDTOEXEC="ttn-lw-cli d create $APP $DEV --dev-eui $DEVEUI --frequency-plan-id EU_863_870_TTN \
 	       	--lorawan-version 1.0.3 --lorawan-phy-version 1.0.3-a --abp --session.dev-addr $DEVADDR \
 		--session.keys.app-s-key.key $APPSKEY --session.keys.f_nwk_s_int_key.key $NETSKEY --mac-settings.rx1-delay RX_DELAY_$RXDELAY \
 		--mac-settings.factory-preset-frequencies 867100000,867300000,867500000,867700000,867900000,868100000,868300000,868500000 $OPTIONSSEP22"
-elif [ "$4" != "OTAA" ] && [ "$7" == "32" ]; then # ABP 32-bit-cnt
+elif [ "$4" != "OTAA" ] && [ "$FCNT" == "32" ]; then # ABP 32-bit-cnt
 	echo "32 bit counters ABP"
-	COMMANDTOEXEC="ttn-lw-cli dev create $APP $DEV --dev-eui $DEVEUI --frequency-plan-id EU_863_870_TTN \
+	COMMANDTOEXEC="ttn-lw-cli d create $APP $DEV --dev-eui $DEVEUI --frequency-plan-id EU_863_870_TTN \
 		--lorawan-version 1.0.3 --lorawan-phy-version 1.0.3-a --abp --session.dev-addr $DEVADDR \
 		--session.keys.app-s-key.key $APPSKEY --session.keys.f_nwk_s_int_key.key $NETSKEY \
 		--mac-settings.factory-preset-frequencies 867100000,867300000,867500000,867700000,867900000,868100000,868300000,868500000 \
 		--mac-settings.rx1-delay RX_DELAY_$RXDELAY --mac-settings.supports-32-bit-f-cnt $OPTIONSSEP22"
-elif [ "$4" == "OTAA" ] && [ "$7" == "32" ]; then # OTAA
+elif [ "$4" == "OTAA" ] && [ "$FCNT" == "32" ]; then # OTAA
 	echo "32 bit counters OTAA"
-	COMMANDTOEXEC="ttn-lw-cli d create $APP $DEV --dev-eui $DEVEUI --frequency-plan-id EU_863_870_TTN --lorawan-version 1.0.3 --lorawan-phy-version 1.0.3-a \
-	       --root-keys.app-key.key $APPSKEY --join-eui $NETSKEY --mac-settings.rx1-delay RX_DELAY_$RXDELAY \
-	       --mac-settings.supports-32-bit-f-cnt $OPTIONSSEP22 $SESKEY"
-elif [ "$4" == "OTAA" ] && [ "$7" == "16" ]; then # OTAA
+	COMMANDTOEXEC="ttn-lw-cli d create $APP $DEV --dev-eui $DEVEUI --root-keys.app-key.key $APPSKEY --join-eui $JOINEUI --mac-settings.rx1-delay RX_DELAY_$RXDELAY --frequency-plan-id EU_863_870_TTN --lorawan-version 1.0.3 --lorawan-phy-version 1.0.3-a --mac-settings.supports-32-bit-f-cnt $OPTIONSSEP22 $SESKEY"
+elif [ "$4" == "OTAA" ] && [ "$FCNT" == "16" ]; then # OTAA
 	echo "16 bit counters OTAA"
-	COMMANDTOEXEC="ttn-lw-cli d create $APP $DEV --dev-eui $DEVEUI --frequency-plan-id EU_863_870_TTN --lorawan-version 1.0.3 --lorawan-phy-version 1.0.3-a \
-	       --root-keys.app-key.key $APPSKEY --join-eui $NETSKEY --mac-settings.rx1-delay RX_DELAY_$RXDELAY \
-	       $OPTIONSSEP22 $SESKEY"
+	COMMANDTOEXEC="ttn-lw-cli d create $APP $DEV --dev-eui $DEVEUI --root-keys.app-key.key $APPSKEY --join-eui $JOINEUI --mac-settings.rx1-delay RX_DELAY_$RXDELAY --frequency-plan-id EU_863_870_TTN --lorawan-version 1.0.3 --lorawan-phy-version 1.0.3-a $OPTIONSSEP22 $SESKEY"
 fi
+echo "Options: $#"
 runcommand
+
