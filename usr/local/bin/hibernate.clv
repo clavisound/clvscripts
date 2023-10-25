@@ -1,10 +1,16 @@
 #!/bin/bash
+source /etc/clvscripts/hibernate.conf
+
 SUSPENDMEDIA=$1
-#SUSPENDMEDIA=${SUSPENDMEDIA:-disk}
 if [ "$SUSPENDMEDIA" != "disk" ] && [ "$SUSPENDMEDIA" != "mem" ]; then
 	MESSAGE="$0 is started with wrong arguments. Aborting."
 	echo $MESSAGE
 	xmessage $MESSAGE
+	exit
+fi
+
+if [ "2" = "raw" ]; then
+	echo $SUSPENDMEDIA > /sys/power/state
 	exit
 fi
 
@@ -26,15 +32,15 @@ if [ -x /etc/rc.d/rc.bluetooth ]; then
 	/etc/rc.d/rc.bluetooth stop
 fi
 
-sync
-
 killall -u sandisk8g # otherwise /media/sandisk8g cannot unmount (blame kde_kio_slave)
 killall gam_server
 killall chrome
 killall chromium
 killall adb
 killall dhclient
-#killall pulseaudio
+
+su - $USERUMOUNT -c "fusermount -u -z /home/$USERUMOUNT/sch.gr"
+su - $USERUMOUNT -c 'fusermount -u -z /mnt/sch'
 
 umount -a -t nfs -l
 	if [ $? -eq 1 ]; then # device mounted abort!
@@ -43,21 +49,30 @@ umount -a -t nfs -l
 		exit 1
 	fi
 
-for MOUNTS in 270G 30g gmx freecom 100g kitrino blue 32G_SD sandisk8g apacer8g wd1 tms 1tbalu 
-# for MOUNTS in 270G 30g gmx freecom 100g kitrino blue sandisk8g apacer8g wd1 tms 1tbalu
+function check_mount(){
+	grep -q $1 /proc/mounts
+	return $?
+}
+
+for MOUNTS in 270G gmx freecom 100g 32G_SD /media/sandisk8g apacer8g wd1 1tbalu 
 do
-	echo "unmounting... $MOUNTS"
-	umount /{mnt,media}/$MOUNTS
-	echo "umount /{mnt,media}/$MOUNTS"
-	grep -q $MOUNTS /proc/mounts
-	if [ $? -eq 0 ]; then # device mounted abort!
-		echo "Device $MOUNTS still mounted, aborting!"
-		xmessage "Unmount $MOUNTS!"
-		exit 1
+	check_mount $MOUNTS
+	if [ $? == 0 ]; then
+		echo "unmounting... $MOUNTS"
+		umount -v $MOUNTS
+		echo "umount $MOUNTS"
+		grep -q $MOUNTS /proc/mounts
+
+		# check if device is unmounted
+		if [ $? -eq 0 ]; then # device mounted abort!
+			echo "Device $MOUNTS still mounted, aborting!"
+			xmessage "Unmount $MOUNTS!"
+			exit 1
+		fi
 	fi
 done
 
-/usr/sbin/alsactl store
+# /usr/sbin/alsactl store
 
 # kill some programs that hang sometimes.
 killall artsd
@@ -65,7 +80,7 @@ killall xine
 killall knotify4
 killall netresolv
 
-modprobe -r e1000e # sometimes we have hardware error. This is a workaround
+#modprobe -r e1000e # sometimes we have hardware error. This is a workaround
 sync
 
 # BUG, does not work
@@ -73,6 +88,29 @@ sync
 # xscreensaver-command -lock &
 
 echo $SUSPENDMEDIA > /sys/power/state
+
+# restore sound and brightness buttons for xfce4
+killall xfce4-volumed-pulse
+# TODO calculate this with logged users and loop it
+for USERAPPRESTART in $(last | grep still | grep tty | sed -e 's+tty.*+tty+' -e 's+ *tty++')
+do 
+	XAUTHORITY=/home/$USERAPPRESTART/.Xauthority
+	DISPLAY=:0.0 
+	su - $USERAPPRESTART -c 'xfce4-volumed-pulse'
+done
+
+
+# Weird bug on Yoga 11S. After resume, cpu goes to ondemand
+# TODO restore buttons for users like brightness and sound only if they
+# are logged-in
+
+# grub my regular user
+USERAPPRESTART$(grep 1000 /etc/passwd | sed 's+:x.*++')
+/usr/sbin/dmidecode | grep Version | grep 'Yoga 11S'
+if [ $? == 0 ]; then
+	echo "The Road to Yoga"
+	su - $USERAPPRESTART -c "bash /home/$USERAPPRESTART/bin/cpu-speed-eco.bash" &
+fi
 
 echo level auto > /proc/acpi/ibm/fan
 killall artsd
@@ -96,13 +134,18 @@ if [ -e /tmp/after_hibernate ]; then
 	rm -f /tmp/after_hibernate
 fi
 
-if [ -x /etc/rc.d/rc.krg ]; then
-	/etc/rc.d/rc.krg 
-fi
+#if [ -x /etc/rc.d/rc.$USERAPPRESTART ]; then
+#	/etc/rc.d/rc.$USERAPPRESTART 
+#fi
 
-# disable 3G
-echo "disabling 3g"
-echo disable > /proc/acpi/ibm/wan
+# TODO needs X
+# su - $USERAPPRESTART 'xfce4-volumed-pulse'
+
+# disable 3G (X61)
+if [ -e /proc/acpi/ibm/wan ]; then
+	echo "disabling 3g"
+	echo disable > /proc/acpi/ibm/wan
+fi
 
 if [ -x /etc/rc.d/rc.clv_network ]; then
 	/etc/rc.d/rc.clv_network
@@ -111,12 +154,26 @@ fi
 if [ -x /etc/rc.d/rc.networkmanager ]; then
 	echo -n "nmcli n on, waiting for connection."
 	nmcli n on
-	for i in $(seq 20)
+	for i in $(seq 25)
 	do
 		echo -n "$i "
 		sleep 1
+		nmcli -g STATE c s | grep activated
+		if [ $? == 0 ]; then
+			break
+		fi
 	done
 fi
+
+PIDBLUE=$(pidof bluetoothd)
+if [ $PIDBLUE -gt 0 ]; then
+	echo PIDBLUE: $PIDBLUE
+	/etc/rc.d/rc.bluetooth restart
+else
+	echo PIDBLUE: $PIDBLUE
+	/etc/rc.d/rc.bluetooth start
+fi
+
 
 
 #/usr/sbin/ip.clv wpathomson
@@ -125,14 +182,13 @@ fi
 # /sbin/iwconfig wlan0 essid clavisound.gr ap 00:1E:74:B0:7F:F8
 # /etc/rc.d/rc.inet1 restart
 
-modprobe e1000e
+#modprobe e1000e
 
-sleep 1
-ping -c 1 in.gr
-if [ $? -eq 0 ]; then
+#ping -c 1 in.gr
+#if [ $? -eq 0 ]; then
 	ntpdate 0.gr.pool.ntp.org
-else
-	echo "No Internet"
-fi
+#else
+#	echo "No Internet"
+#fi
 
-mount-nfs.clv.priv
+#mount-nfs.clv.priv
