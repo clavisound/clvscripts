@@ -58,15 +58,16 @@ function installkernel (){
 	cd $SOURCE
 	cp -p .config /boot/config-$MYRELEASE
 	cp -p System.map /boot/System.map-$MYRELEASE
-	ln -sf /boot/System.map-$MYRELEASE /boot/System.map
-	ln -sf /boot/bzImage-$MYRELEASE /boot/vmlinuz-clv
-	ln -sf /boot/bzImage-$MYRELEASE /boot/vmlinuz-$MYRELEASE
-	grep -q CONFIG_64BIT=y $SOURCE/.config
+	grep -q CONFIG_64BIT=y .config
 	if [ $? -eq 0 ]; then
 		cp -p arch/x86_64/boot/bzImage /boot/bzImage-$MYRELEASE
 	else
 		cp -p arch/i386/boot/bzImage /boot/bzImage-$MYRELEASE
 	fi
+	cd /boot
+	ln -sf System.map-$MYRELEASE System.map
+	ln -sf bzImage-$MYRELEASE vmlinuz-clv
+	ln -sf bzImage-$MYRELEASE vmlinuz-$MYRELEASE
 }
 
 function installlilo (){
