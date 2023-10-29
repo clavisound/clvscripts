@@ -1,0 +1,4 @@
+#!/bin/bash
+
+AVAILABLE_PORT=$(pactl list sinks | grep ', availa' | sed -e 's+.*analog+analog+' -e 's+: .*++')
+pactl set-sink-port 0 $AVAILABLE_PORT
