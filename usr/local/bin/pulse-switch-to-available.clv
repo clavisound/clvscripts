@@ -2,3 +2,4 @@
 
 AVAILABLE_PORT=$(pactl list sinks | grep ', availa' | sed -e 's+.*analog+analog+' -e 's+: .*++')
 pactl set-sink-port 0 $AVAILABLE_PORT
+notify-send -u normal -t 3000 -i /usr/share/icons/nuvola/64x64/devices/cpu.png "pulse to $AVAILABLE_PORT"
