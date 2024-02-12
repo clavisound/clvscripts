@@ -16,10 +16,12 @@ if [ "$DOMAIN" == "github.com" ]; then
 	# WEB  URL: https://github.com/Dolibarr/dolibarr/archive/8.0.4.tar.gz
 	# REAL URL: https://codeload.github.com/Dolibarr/dolibarr/tar.gz/8.0.4
 
-	# WEB  URL: https://github.com/nwoltman/srt-to-vtt-cl/archive/refs/tags/v1.2.0.tar.gz
-	# REAL URL: 
+	# WEB  URL: https://github.com/CauldronDevelopmentLLC/cbang/archive/refs/tags/1.6.1.tar.gz
+	# REAL URL: https://codeload.github.com/CauldronDevelopmentLLC/cbang/tar.gz/refs/tags/1.6.1
+	
+	# WEB URL: https://github.com/mapbox/protozero/archive/refs/tags/v1.7.1.tar.gz
+	# NEW URL: https://github.com/mapbox/protozero/archive/v1.7.1./protozero-1.7.1.tar.gz
 	echo "github experimental support"
-	sleep 2
 	echo $1 | grep -q '/tags/'
 	if [ $? -eq 0 ]; then
 		VERSION=$(echo $1 | sed -e 's+.*/tags/v++' -e 's+.*/tags/++' -e 's+.tar.*++')
@@ -29,8 +31,8 @@ if [ "$DOMAIN" == "github.com" ]; then
 	PRGNAME=$(echo $1 | cut -d'/' -f5)
 	PROJNAME=$(echo $1 | cut -d'/' -f4)
 	FILETYPE=$(echo $1 | sed -e 's+.*\.tar+tar+')
-	URLNEW="https://codeload.github.com/$PROJNAME/$PRGNAME/$FILETYPE/v$VERSION"
-	FILENAME=$(echo $1 | sed -e 's+/download$++' -e "s+archive/.*+archive/v$VERSION/$PRGNAME-$VERSION.tar.gz+" -e 's/.*\///g')
+	URLNEW="https://github.com/$PROJNAME/$PRGNAME/archive/v$VERSION/$PRGNAME-$VERSION.$FILETYPE"
+	FILENAME=$(echo $1 | sed -e 's+/download$++' -e "s+archive/.*+archive/$VERSION/$PRGNAME-$VERSION.tar.gz+" -e 's/.*\///g')
 	echo -e "VER: $VERSION\nNAME: $PRGNAME\nURLNEW: $URLNEW\nFILE $FILENAME"
 fi
 
@@ -48,7 +50,8 @@ if [ $? == 8 ] || [ "$URLNEW" == '' ] ; then # 404 code
 	echo "using original URL"
 	wget "$URL" -O "$FILENAME"
 else
-	wget "$URLNEW" -O "$FILENAME"
+	URL="$URLNEW"
+	wget "$URL" -O "$FILENAME"
 fi
 
 # keep only last url
@@ -57,6 +60,5 @@ if [ "$FILE_AND_PATH" == "" ]; then
 	echo "URL is bad (probable ends with /), aborting"
 	exit 1
 else
-	#echo "$URL" > "$FILE_AND_PATH".link
 	echo "$URL" > "$FILENAME".link
 fi
