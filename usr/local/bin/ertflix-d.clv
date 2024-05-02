@@ -10,16 +10,21 @@ if [ "$2" = "-t" ]; then
 fi
 
 YTBIN=${YTBIN:-"youtube-dl"}
-LIMITRATE=${LIMITRATE:-"-r 150k"}
+LIMITRATE=${LIMITRATE:-"-r 450k"}
 URL=$1
 
-FILE=$(echo $URL | sed -e 's+.*default/++g' -e 's+/.*++')
+# Was ok till MAY 24
+#FILE=$(echo $URL | sed -e 's+.*default/++g' -e 's+/.*++')
+FILE=$(echo $URL | gawk -F '/' '{ print $7}')
 wget -q $URL -O $FILE.mpd
 
 VIDEOQ=$(grep width=.768 $FILE.mpd | gawk -F'"' '{ print $2 }')
 #AUDIOQ="audio=128000" # some streams don't have 128k
-AUDIOQ=$(grep minBand $FILE.mpd | grep audio | gawk -F'"' '{ print $7 $8 }' | sed -e 's+minBandwidth+audio+' -e 's+ ++')
+# fine till may 2024
+#AUDIOQ=$(grep minBand $FILE.mpd | grep audio | gawk -F'"' '{ print $7 $8 }' | sed -e 's+minBandwidth+audio+' -e 's+ ++')
+AUDIOQ=$(grep minBand $FILE.mpd | grep audio | gawk -F'"' '{ print $10 }' | sed -e 's+minBandwidth+audio+' -e 's+ ++')
 AUDIONUM=$(echo $AUDIOQ | sed 's+.*=++')
+AUDIOQ=$(grep "$AUDIONUM" $FILE.mpd | grep audio | tail -n 1 | gawk -F '"' '{ print $2}')
 
 for STREAM in $VIDEOQ $AUDIOQ
 do
