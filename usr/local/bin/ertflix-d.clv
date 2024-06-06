@@ -1,45 +1,60 @@
 #!/bin/bash
+
+function ffmpegencode(){
+	if [ "$3" = "-v" ]; then
+		echo ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $2 -acodec copy -y $FILE.mp4
+		ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $2 -acodec copy -y $FILE.mp4
+	else
+		echo ffmpeg -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $2 -acodec copy -y $FILE.mp4
+		ffmpeg -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $2 -acodec copy -y $FILE.mp4
+	fi
+}
+
 if [ "$1" = "" ]; then
 	echo "Usage: $0 FILE.mpd animation/film"
-	echo "Options: YTBIN=binary LIMITRATE="-r 400k""
+	echo "Options: YTBIN=binary LIMITRATE=\"-r 400k\""
 	exit 1
 fi
 
-if [ "$2" = "-t" ]; then
+if [ "$3" = "-t" ]; then
 	echo "Testing, only echo"
 fi
 
 YTBIN=${YTBIN:-"youtube-dl"}
-LIMITRATE=${LIMITRATE:-"-r 450k"}
+LIMITRATE=${LIMITRATE:-"-r 400k"}
 URL=$1
 
-# Was ok till MAY 24
-#FILE=$(echo $URL | sed -e 's+.*default/++g' -e 's+/.*++')
-FILE=$(echo $URL | gawk -F '/' '{ print $7}')
+FILE=$(echo $URL | gawk -F "/" ' { print $7 } ')
 wget -q $URL -O $FILE.mpd
 
 VIDEOQ=$(grep width=.768 $FILE.mpd | gawk -F'"' '{ print $2 }')
-#AUDIOQ="audio=128000" # some streams don't have 128k
-# fine till may 2024
-#AUDIOQ=$(grep minBand $FILE.mpd | grep audio | gawk -F'"' '{ print $7 $8 }' | sed -e 's+minBandwidth+audio+' -e 's+ ++')
-AUDIOQ=$(grep minBand $FILE.mpd | grep audio | gawk -F'"' '{ print $10 }' | sed -e 's+minBandwidth+audio+' -e 's+ ++')
-AUDIONUM=$(echo $AUDIOQ | sed 's+.*=++')
-AUDIOQ=$(grep "$AUDIONUM" $FILE.mpd | grep audio | tail -n 1 | gawk -F '"' '{ print $2}')
+
+AUDIOQ=$(grep 128000 $FILE.mpd | grep audio | gawk -F'"' '{ print $2 }')
+# some streams don't have 128k. Grab the lowest setting
+if [ "$AUDIOQ" == "" ]; then
+	AUDIOQ=$(grep minBand $FILE.mpd | grep audio | gawk -F'"' '{ print $7 $8 }' | sed -e 's+minBandwidth+audio+' -e 's+ ++')
+fi
+#AUDIONUM=$(echo $AUDIOQ | sed 's+.*=++')
 
 for STREAM in $VIDEOQ $AUDIOQ
 do
-	if [ "$2" = "-t" ]; then
-		echo $YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
+	if [ "$3" = "-t" ]; then
+		echo $YTBIN -q -f $VIDEOQ $LIMITRATE $URL -o $FILE.$VIDEOQ
+		echo $YTBIN -q -f $AUDIOQ $LIMITRATE $URL -o $FILE.$AUDIOQ
+		exit
 	else
-		$YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
+		if [ "$3" = "-v" ]; then
+			$YTBIN -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
+		else
+			$YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
+		fi
 	fi
 done
 
-echo ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune film -acodec copy -y $FILE.mp4
-if [ "$2" = "animation" ]; then
-	ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $2 -acodec copy -y $FILE.mp4
-fi	
-
-if [ "$2" = "film" ]; then
-	ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $2 -acodec copy -y $FILE.mp4
+if [ "$2" = "animation" ] || [ "$2" = "film" ]; then
+	ffmpegencode
+else
+	echo "Need to specify animation or film."
+	$0
+	exit
 fi
