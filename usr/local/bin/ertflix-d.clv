@@ -1,7 +1,12 @@
 #!/bin/bash
+YTBIN=${YTBIN:-"youtube-dl"}
+LIMITRATE=${LIMITRATE:-"-r 400k"}
+URL=$1
+TUNE=$2
+OPTION=$3
 
 function ffmpegencode(){
-	if [ "$3" = "-v" ]; then
+	if [ "$OPTION" = "-v" ]; then
 		echo ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $TUNE -acodec copy -y $FILE.mp4
 		ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $TUNE -acodec copy -y $FILE.mp4
 	else
@@ -16,14 +21,9 @@ if [ "$1" = "" ]; then
 	exit 1
 fi
 
-if [ "$3" = "-t" ]; then
+if [ "$OPTION" = "-t" ]; then
 	echo "Testing, only echo"
 fi
-
-YTBIN=${YTBIN:-"youtube-dl"}
-LIMITRATE=${LIMITRATE:-"-r 400k"}
-URL=$1
-TUNE=$2
 
 FILE=$(echo $URL | gawk -F "/" ' { print $7 } ')
 # download if file.mpd is not exists
@@ -43,12 +43,12 @@ fi
 function download_stream(){
 	for STREAM in $VIDEOQ $AUDIOQ
 	do
-		if [ "$3" = "-t" ]; then
+		if [ "$OPTION" = "-t" ]; then
 			echo $YTBIN -q -f $VIDEOQ $LIMITRATE $URL -o $FILE.$VIDEOQ
 			echo $YTBIN -q -f $AUDIOQ $LIMITRATE $URL -o $FILE.$AUDIOQ
 			exit
 		else
-			if [ "$3" = "-v" ]; then
+			if [ "$OPTION" = "-v" ]; then
 				$YTBIN -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
 			else
 				$YTBIN -q -f $STREAM $LIMITRATE $URL -o $FILE.$STREAM
@@ -59,7 +59,7 @@ function download_stream(){
 
 download_stream
 
-if [ "$2" = "animation" ] || [ "$2" = "film" ]; then
+if [ "$TUNE" = "animation" ] || [ "$TUNE" = "film" ]; then
 	ffmpegencode
 else
 	echo "Need to specify animation or film."
