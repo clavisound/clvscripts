@@ -6,6 +6,10 @@ TUNE=$2
 OPTION=$3
 
 function ffmpegencode(){
+	if [ "$OPTION" = "-t" ]; then
+		echo ffmpeg -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $TUNE -acodec copy -y $FILE.mp4
+		exit
+	fi
 	if [ "$OPTION" = "-v" ]; then
 		echo ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $TUNE -acodec copy -y $FILE.mp4
 		ffmpeg -v 8 -i $FILE.$VIDEOQ -i $FILE.$AUDIOQ -vcodec libx264 -crf 23 -preset veryfast -tune $TUNE -acodec copy -y $FILE.mp4
@@ -46,6 +50,7 @@ function download_stream(){
 		if [ "$OPTION" = "-t" ]; then
 			echo $YTBIN -q -f $VIDEOQ $LIMITRATE $URL -o $FILE.$VIDEOQ
 			echo $YTBIN -q -f $AUDIOQ $LIMITRATE $URL -o $FILE.$AUDIOQ
+			ffmpegencode
 			exit
 		else
 			if [ "$OPTION" = "-v" ]; then
