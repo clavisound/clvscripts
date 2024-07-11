@@ -1,0 +1,82 @@
+#!/bin/bash
+# Sometimes my FAN is always on
+# This is manual control of the fan
+
+SLEEPSECS=3
+PROCFILE=/proc/acpi/ibm/fan
+
+trap enablefan SIGINT
+
+TEMPHIGH=65
+TEMPLOW=60
+
+function enablefan()
+{
+	echo "Exiting, enabling fan.."
+	#uhubctl -l 1-4.4 -p 2 -a on
+	echo enable > $PROCFILE 
+	echo level auto > $PROCFILE
+	exit 0
+}
+
+# external connected to USB dock
+##uhubctl -l 1-4.4 -p 2 -a on
+echo enable > $PROCFILE 
+echo level auto > $PROCFILE
+STATUSFAN=1
+
+function fansilent(){
+	echo "Fan silent"
+	echo level 1 > $PROCFILE
+	sleep 6 # change this value. May it help for noisy and broken fan.
+	echo level 0 > $PROCFILE
+}
+
+while true
+do
+# read the FAN RPM
+FANRPM=$(grep speed: $PROCFILE | sed 's/speed:\t\t//')
+TEMP=$(cat /proc/acpi/ibm/thermal | gawk -F" " '{ print $2 }')
+echo -n "$TEMP, "
+
+# if more than 6.000 system probably is out-of-spec
+if [ $FANRPM -gt 6000 ] || [ $TEMP -gt $TEMPHIGH ]; then
+	# got to MAX
+	echo level 7 > $PROCFILE
+	# give some time
+	sleep 3
+	# reset to default
+	echo level auto > $PROCFILE
+fi
+
+#if [ $FANRPM -gt 1000 ] && [ $TEMP -lt 48 ]; then
+if [ $TEMP -lt $TEMPLOW ]; then # was 51 for internal fan
+	if [ $STATUSFAN -eq 0 ]; then
+		echo "Fan already disabled. Temp: $TEMP"
+		fansilent
+	else
+		if [ "$1" == -v ]; then
+			echo "disabling fan"
+		fi
+		date +%T
+		##uhubctl -l 1-4.4 -p 2 -a off
+		echo level 0 > $PROCFILE
+		STATUSFAN=0
+	fi
+fi
+
+if [ $TEMP -gt $TEMPHIGH ]; then # was 53 with internal fan
+	if [ $STATUSFAN -eq 1 ]; then
+		echo "Fan already enabled. Temp: $TEMP"
+	else
+		if [ "$1" == -v ]; then
+			echo "enabling fan: Temp: $TEMP"
+		fi
+		date +%T
+		#uhubctl -l 1-4.4 -p 2 -a on
+		echo level auto > $PROCFILE
+		STATUSFAN=1
+	fi
+fi
+sleep $SLEEPSECS
+done
