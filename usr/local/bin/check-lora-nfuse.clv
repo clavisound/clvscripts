@@ -1,5 +1,7 @@
 #!/bin/bash
 
+CPU_LIMIT=14
+
 start_lora()
 {
 	bash /usr/local/bin/lora-nfuse-start.clv
@@ -31,8 +33,10 @@ if [ "$CPU_USAGE" == "" ]; then
 fi
 
 # BUG? top says 100% but ps says 37-40 CPU usage
-if [ $CPU_USAGE -gt 30 ]; then
-	echo More than 30, pcpu: $CPU_USAGE
+# BUG? top says 100% but ps says 15 CPU usage
+# Normal cpu usage is 3%
+if [ $CPU_USAGE -gt $CPU_LIMIT ]; then
+	echo More than $CPU_LIMIT, pcpu: $CPU_USAGE
 	echo "restarting lora CPU: $CPU_USAGE" | mail -s "LoRa HANG!" `whoami` 
 	start_lora
 	exit
