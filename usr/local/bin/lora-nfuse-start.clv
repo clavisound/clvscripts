@@ -29,14 +29,24 @@ startLoRa(){
 	checkforACM
 	if [ $? == 0 ]; then
 		echo "Waiting 25 seconds to make sure device is up"
+		echo -n "Starting concentrator: " | tee -a $LOGFOLDER/lora.log
+		date | tee -a $LOGFOLDER/lora.log
 		for i in `seq 1 25`
 		do
 			echo -n "$i, "
+
+			# echo some lines to get-rid of CRC zero data log.
+			if [ $i -lt 10 ]; then
+				echo $i >> $LOGFOLDER/lora.log
+			fi
 			sleep 1
 		done
 		echo "LoRa starting.."
 		cd $LORA_FORWARDER_FOLDER
-		lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log &
+		# OLD ok
+		#lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log &
+		# for my branch
+		lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte\|txlut | tee -a $LOGFOLDER/lora.log &
 		exit 0
 	else
 		echo "We expect LoRa concentrator on ACM$ACM"
