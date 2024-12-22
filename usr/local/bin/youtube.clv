@@ -1,37 +1,52 @@
 #!/bin/bash
 # Requires latest youtube-dl, ffmpeg
 
+URL=$1
+CLIOPTIONS=$2
 LIMITRATE=${LIMITRATE:-"-r 150k"}
 YTBIN=${YTBIN:-"youtube-dl"}
 
-echo "$YTBIN -f 140/251/171 $LIMITRATE -k $1"
-$YTBIN -f 140/251/171 $LIMITRATE -k $1 
-#-o '%(title)s__%(id).%(ext)s'
-if [ $? == 1 ]; then
-	$YTBIN -F $LIMITRATE -k $1 | grep 480 | tail -1
-	echo "error with audio"; exit 1
-fi
+function downloadYT(){
+	echo "$YTBIN -f 140/251/171 $LIMITRATE -k $URL"
+	$YTBIN -f 140/251/171 $LIMITRATE -k $URL 
+	#-o '%(title)s__%(id).%(ext)s'
+	if [ $? == 1 ]; then
+		$YTBIN -F $LIMITRATE -k $URL | grep 480 | tail -1
+		echo "error with audio"; exit 1
+	fi
 
-if [ $2 == "-a" ]; then
-	echo "Only audio downloading."
+	echo "$YTBIN -f 135/18 $LIMITRATE -k $URL"
+	#-o '%(title)s__%(id).%(ext)s'
+	$YTBIN -f 135/18 $LIMITRATE -k $URL
+	if [ $? == 1 ]; then
+		echo here; exit
+		$YTBIN -F $LIMITRATE -k $URL | grep audio | tail -1
+		echo "error with video"; exit 1
+	fi
+}
+
+function varsFromURL(){
+	LINK=$(echo $URL | sed 's/.*v=//')
+	FILE=$(find ./ -name \*$LINK].mp4 -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.mp4$++' | sed -f /etc/escapechars.sed || find ./ -name \*$LINK].m4a -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.m4a$++' | sed -f /etc/escapechars.sed)
+	echo "find ./ -name \*$LINK.webm -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.webm++' | sed -f /etc/escapechars.sed"
+	FILEA=$(find ./ -name \*$LINK\* -maxdepth 1 | tail -1 | sed -f /etc/escapechars.sed)
+	FILEB=$(find ./ -name \*$LINK\* -maxdepth 1 | head -1 | sed -f /etc/escapechars.sed)
+}
+
+ffmpeg_encode(){
+	# I don't need lame
+	# ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -aq 4 -vcodec copy \
+	ffmpeg -i "$FILEA" -i "$FILEB" -c copy -y "$FILE".merged.mp4
+	echo ffmpeg -i "'$FILEA'" -i "'$FILEB'" -c copy -y "'$FILE".merged.mp4'
+	echo "rm '$FILEA $FILEB'"
+}
+
+if [ "$CLIOPTIONS" == "-e" ]; then
+	varsFromURL
+	ffmpeg_encode
 	exit 0
 fi
 
-echo "$YTBIN -f 135/18 $LIMITRATE -k $1"
-#-o '%(title)s__%(id).%(ext)s'
-$YTBIN -f 135/18 $LIMITRATE -k $1
-if [ $? == 1 ]; then
-	$YTBIN -F $LIMITRATE -k $1 | grep audio | tail -1
-	echo "error with video"; exit 1
-fi
-
-LINK=$(echo $1 | sed 's/.*v=//')
-FILE=$(find ./ -name \*$LINK.mp4 -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.mp4$++' | sed -f /etc/escapechars.sed || find ./ -name \*$LINK.m4a -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.m4a$++' | sed -f /etc/escapechars.sed)
-echo "find ./ -name \*$LINK.webm -maxdepth 1 | tail -1 | sed -e 's+\./++' -e 's+\.webm++' | sed -f /etc/escapechars.sed"
-FILEA=$(find ./ -name \*$LINK\* -maxdepth 1 | tail -1 | sed -f /etc/escapechars.sed)
-FILEB=$(find ./ -name \*$LINK\* -maxdepth 1 | head -1 | sed -f /etc/escapechars.sed)
-
-# I don't need lame
-# ffmpeg -i "$AUDIO" -i "$VIDEO" -acodec libmp3lame -aq 4 -vcodec copy \
-ffmpeg -i "$FILEA" -i "$FILEB" -c copy -y "$FILE".merged.mp4
-echo ffmpeg -i "$FILEA" -i "$FILEB" -c copy -y "$FILE".merged.mp4
+downloadYT
+varsFromURL
+ffmpeg_encode

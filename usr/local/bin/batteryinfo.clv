@@ -1,10 +1,23 @@
 #!/bin/bash
 # By Michales Michaloudes (clavisound). Use it for good cause and
 # Use it at your own risk
-if [ ! -r /sys/class/power_supply/BAT1/uevent ]; then
+
+SYSFSBAT0=0
+SYSFSBAT1=0
+
+# check if multiple batteries are present like in a ThinkPad X250
+if [ -r /sys/class/power_supply/BAT0/uevent ]; then
+	SYSFSBAT0=1
+fi
+
+if [ -r /sys/class/power_supply/BAT1/uevent ]; then
+	SYSFSBAT1=1
+fi
+
+if [ $SYSFSBAT0 == 0 ] && [ $SYSFSBAT1 == 0 ]; then
 	echo "Your kernel does not report battery statistics, or you don't have a laptop :)"
 	exit
-fi	
+fi
 
 echo_comma (){
 echo -n ','
@@ -18,25 +31,45 @@ echo_comma
 echo -n $LOADAVG
 echo_comma
 
-for I in ENERGY_FULL= POWER_NOW SUPPLY_STATUS ENERGY_NOW
-do
-	IUEVENT=$(grep $I /sys/class/power_supply/BAT1/uevent)
-	IUEVENT_TRIM_ZEROS=$(echo $IUEVENT | sed -e 's/000,/,/g' -e 's/000$//g')
-	echo -n $IUEVENT_TRIM_ZEROS
-	if [ "$I" = "ENERGY_NOW" ]; then
-		echo
-	else
-		echo_comma 
-	fi
-done
+function readBat(){
 
-if [ "$1" = "-v" ]; then # verbose
-	POWERNOW=$(cat /sys/class/power_supply/BAT1/power_now)
-	if [ $POWERNOW = 0 ]; then
-		echo "Battery charged."
-		exit 0
+	for I in ENERGY_FULL= POWER_NOW SUPPLY_STATUS ENERGY_NOW
+	do
+		IUEVENT=$(grep $I /sys/class/power_supply/BAT$1/uevent)
+		IUEVENT_TRIM_ZEROS=$(echo $IUEVENT | sed -e 's/000,/,/g' -e 's/000$//g')
+		echo -n $IUEVENT_TRIM_ZEROS
+		if [ "$I" = "ENERGY_NOW" ]; then
+			if [ $2 == 1 ]; then ## .. we have more battery
+				echo_comma 
+			else
+				echo		# end of line
+			fi
+		else
+			echo_comma 
+		fi
+	done
+
+	if [ "$2" = "-v" ]; then # verbose
+		POWERNOW=$(cat /sys/class/power_supply/BAT$1/power_now)
+		if [ $POWERNOW = 0 ]; then
+			echo "Battery charged."
+			exit 0
+		fi
+		ENERGYNOW=$(cat /sys/class/power_supply/BAT$1/energy_now)
+		HOURS=$(echo $ENERGYNOW / $POWERNOW | bc -l | cut -c 1-3)
+		echo Hours Remaining: $HOURS
 	fi
-	ENERGYNOW=$(cat /sys/class/power_supply/BAT1/energy_now)
-	HOURS=$(echo $ENERGYNOW / $POWERNOW | bc -l | cut -c 1-3)
-	echo Hours Remaining: $HOURS
+}
+
+if [ $SYSFSBAT0 == 1 ] && [ $SYSFSBAT1 == 0 ]; then
+	readBat 0; 
+fi
+ 
+if [ $SYSFSBAT0 == 0 ] && [ $SYSFSBAT1 == 1 ]; then
+	readBat 1; 
+fi
+
+if [ $SYSFSBAT0 == 1 ] && [ $SYSFSBAT1 == 1 ]; then
+	readBat 0 1;
+	readBat 1 0;
 fi
