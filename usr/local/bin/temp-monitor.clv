@@ -1,29 +1,22 @@
 #!/bin/bash
-STATUS=$(dmidecode | grep Family: | grep -q ThinkPad; echo $?)
+# Ok for Thinkpad X61/T61
+#FAN=`grep speed: /proc/acpi/ibm/fan`
+#THERMAL=$(cat /proc/acpi/ibm/thermal)
+# Yoga-11s
+FAN="NaN"
+THERMAL=$(cat /sys/devices/virtual/thermal/thermal_zone0/temp | sed 's+...$++')
 
-if [ $STATUS -eq 0 ]; then
-	# Thinkpad X61/T61
-	FAN=`grep speed: /proc/acpi/ibm/fan`
-	THERMAL=$(cat /proc/acpi/ibm/thermal)
-else
-	# Yoga-11s
-	FAN="NaN"
-	THERMAL=$(cat /sys/devices/virtual/thermal/thermal_zone0/temp | sed 's+...$++')
-fi
+# ok for ThinkPads
+#TEMP=$(echo $THERMAL | gawk -F" " '{ print $2 }')
+#GPU=$(echo $THERMAL | gawk -F" " '{ print $5 }')
+#BAT=$(echo $THERMAL | gawk -F" " '{ print $6 }')
+#PCMCIA=$(echo $THERMAL | gawk -F" " '{ print $4 }')
 
-if [ $STATUS -eq 0 ]; then
-	# ThinkPads
-	TEMP=$(echo $THERMAL | gawk -F" " '{ print $2 }')
-	GPU=$(echo $THERMAL | gawk -F" " '{ print $5 }')
-	BAT=$(echo $THERMAL | gawk -F" " '{ print $6 }')
-	PCMCIA=$(echo $THERMAL | gawk -F" " '{ print $4 }')
-else
-	# yoga 11s
-	TEMP=$THERMAL
-	GPU="NaN"
-	BAT="NaN"
-	PCMCIA="NaN"
-fi
+# yoga 11s
+TEMP=$THERMAL
+GPU="NaN"
+BAT="NaN"
+PCMCIA="NaN"
 
 
 CPU1=$(cat /sys/devices/system/cpu/cpu1/online 2>/dev/null)
@@ -31,28 +24,42 @@ CPUFREQ=$(grep MHz /proc/cpuinfo | gawk -F":" ' { print $2 }' | sed -e N -e 's/\
 # ok for intel SSD 525
 #TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '190 Air' | gawk -F' ' ' { print $10 } ')
 # ok for DC3500
-TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '194 Temp' | gawk -F' ' ' { print $10 } ')
+#TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep '194 Temp' | gawk -F' ' ' { print $10 } ')
 # ok for Samsung MZMTD256HAGM
-#TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep 'Tempera' | gawk -F' ' ' { print $10 } ')
+TEMPSSD=$(sudo /usr/sbin/smartctl -A /dev/sda | grep 'Tempera' | gawk -F' ' ' { print $10 } ')
 
-if [ $STATUS -eq 0 ]; then
-	# ThinkPads
-	grep -q discharging /proc/acpi/battery/BAT0/state 2>/dev/null
-	if [ $? -eq 0 ]; then
-		MILLIWATTS=$(grep 'present rate' /proc/acpi/battery/BAT0/state | gawk -F" " '{ print $3 }')
-	else
-		MILLIWATTS=NaN
-	fi
+# ok for thinkpads
+#grep -q discharging /proc/acpi/battery/BAT0/state 2>/dev/null
+#if [ $? -eq 0 ]; then
+#	MILLIWATTS=$(grep 'present rate' /proc/acpi/battery/BAT0/state | gawk -F" " '{ print $3 }')
+#else
+#	MILLIWATTS=NaN
+#fi
+
+# Yoga 11s
+#SUPPLYSTATUS=$(grep SUPPLY_STATUS /sys/class/power_supply/BAT1/uevent | sed 's+.*=++')
+#if [ "$SUPPLYSTATUS" == "Charging" ]; then
+#	MILLIWATTS="+"
+#else
+#	MILLIWATTS="-"
+#fi
+#MILLIWATTS+=$(grep POWER_NOW /sys/class/power_supply/BAT1/uevent | sed -e 's+.*=++' -e 's+...$++')
+
+SUPPLYSTATUS_INTERNAL=$(grep SUPPLY_STATUS /sys/class/power_supply/BAT0/uevent | sed 's+.*=++')
+if [ "$SUPPLYSTATUS_INTERNAL" == "Charging" ]; then
+	MILLIWATTS_INTERNAL="+"
 else
-	# Yoga 11s
-	SUPPLYSTATUS=$(grep SUPPLY_STATUS /sys/class/power_supply/BAT1/uevent | sed 's+.*=++')
-	if [ "$SUPPLYSTATUS" == "Charging" ]; then
-		MILLIWATTS="+"
-	else
-		MILLIWATTS="-"
-	fi
-	MILLIWATTS+=$(grep POWER_NOW /sys/class/power_supply/BAT1/uevent | sed -e 's+.*=++' -e 's+...$++')
+	MILLIWATTS_INTERNAL="-"
 fi
+MILLIWATTS_INTERNAL+=$(grep POWER_NOW /sys/class/power_supply/BAT0/uevent | sed -e 's+.*=++' -e 's+...$++')
+
+SUPPLYSTATUS_EXTERNAL=$(grep SUPPLY_STATUS /sys/class/power_supply/BAT1/uevent | sed 's+.*=++')
+if [ "$SUPPLYSTATUS_EXTERNAL" == "Charging" ]; then
+	MILLIWATTS_EXTERNAL="+"
+else
+	MILLIWATTS_EXTERNAL="-"
+fi
+MILLIWATTS_EXTERNAL+=$(grep POWER_NOW /sys/class/power_supply/BAT1/uevent | sed -e 's+.*=++' -e 's+...$++')
 
 echo_comma (){
 	echo -n ', '
@@ -90,4 +97,7 @@ echo_comma
 echo -n $CPUFREQ
 echo_comma
 
-echo $MILLIWATTS
+echo -n $MILLIWATTS_INTERNAL
+echo_comma
+
+echo $MILLIWATTS_EXTERNAL

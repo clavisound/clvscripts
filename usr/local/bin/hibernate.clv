@@ -1,6 +1,21 @@
 #!/bin/bash
 source /etc/clvscripts/hibernate.conf
 
+CUSTOMACTION=empty
+
+if [ "$2" != '' ]; then
+	CUSTOMACTION=$2
+fi
+
+if [ "$CUSTOMACTION" == "usb-reset" ]; then
+	bash /root/scripts/sys/rmmodule_usb_hcd -d
+fi
+
+if [ "$CUSTOMACTION" == "raw" ]; then
+	echo $SUSPENDMEDIA > /sys/power/state
+	exit
+fi
+
 SUSPENDMEDIA=$1
 if [ "$SUSPENDMEDIA" != "disk" ] && [ "$SUSPENDMEDIA" != "mem" ]; then
 	MESSAGE="$0 is started with wrong arguments. Aborting."
@@ -9,10 +24,6 @@ if [ "$SUSPENDMEDIA" != "disk" ] && [ "$SUSPENDMEDIA" != "mem" ]; then
 	exit
 fi
 
-if [ "2" = "raw" ]; then
-	echo $SUSPENDMEDIA > /sys/power/state
-	exit
-fi
 
 #/sbin/modprobe -r pvrusb2
 
@@ -54,7 +65,7 @@ function check_mount(){
 	return $?
 }
 
-for MOUNTS in 270G gmx freecom 100g 32G_SD /media/sandisk8g apacer8g wd1 1tbalu 
+for MOUNTS in 270G gmx freecom 100g 32G_SD /media/sandisk8g apacer8g wd1 1tbalu 2tbalu
 do
 	check_mount $MOUNTS
 	if [ $? == 0 ]; then
@@ -89,26 +100,34 @@ sync
 
 echo $SUSPENDMEDIA > /sys/power/state
 
+# RESTORE FROM HERE
+if [ "$CUSTOMACTION" == "usb-reset" ]; then
+	bash /root/scripts/sys/rmmodule_usb_hcd
+fi
+
 # restore sound and brightness buttons for xfce4
-killall xfce4-volumed-pulse
+# killall xfce4-volumed-pulse
 # TODO calculate this with logged users and loop it
-for USERAPPRESTART in $(last | grep still | grep tty | sed -e 's+tty.*+tty+' -e 's+ *tty++')
-do 
-	XAUTHORITY=/home/$USERAPPRESTART/.Xauthority
-	DISPLAY=:0.0 
-	su - $USERAPPRESTART -c 'xfce4-volumed-pulse'
-done
+#for USERAPPRESTART in $(last | grep still | grep tty | sed -e 's+tty.*+tty+' -e 's+ *tty++')
+#do 
+#	XAUTHORITY=/home/$USERAPPRESTART/.Xauthority
+#	DISPLAY=:0.0 
+#	su - $USERAPPRESTART -c 'xfce4-volumed-pulse'
+#done
+
+# pulse-switch-to-available.clv
+killall pulseaudio
 
 
-# Weird bug on Yoga 11S. After resume, cpu goes to ondemand
+# Weird bug on Yoga 11S and ThinkPad X250. After resume, cpu goes to ondemand
 # TODO restore buttons for users like brightness and sound only if they
 # are logged-in
 
 # grub my regular user
-USERAPPRESTART$(grep 1000 /etc/passwd | sed 's+:x.*++')
-/usr/sbin/dmidecode | grep Version | grep 'Yoga 11S'
+USERAPPRESTART=$(grep 1000 /etc/passwd | sed 's+:x.*++')
+/usr/sbin/dmidecode | grep Version | grep 'Yoga 11S\|X250'
 if [ $? == 0 ]; then
-	echo "The Road to Yoga"
+	echo "The Road to Yoga and X250"
 	su - $USERAPPRESTART -c "bash /home/$USERAPPRESTART/bin/cpu-speed-eco.bash" &
 fi
 
@@ -124,8 +143,8 @@ if [ -x /proc/net/wireless ]; then
 	/etc/rc.d/rc.inet1 restart
 fi
 
-# /usr/sbin/alsactl restore -f /etc/asound.state.x61
-/usr/sbin/alsactl restore
+/usr/sbin/alsactl restore -f /etc/asound.state.11s
+# /usr/sbin/alsactl restore
 
 #/sbin/modprobe pvrusb2
 
@@ -192,3 +211,4 @@ fi
 #fi
 
 #mount-nfs.clv.priv
+

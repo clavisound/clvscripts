@@ -5,6 +5,13 @@
 SYSFSBAT0=0
 SYSFSBAT1=0
 
+VERBOSE=""
+POWERNOW=0
+
+if [ "$1" == "-v" ]; then
+	VERBOSE=$1
+fi
+
 # check if multiple batteries are present like in a ThinkPad X250
 if [ -r /sys/class/power_supply/BAT0/uevent ]; then
 	SYSFSBAT0=1
@@ -32,7 +39,6 @@ echo -n $LOADAVG
 echo_comma
 
 function readBat(){
-
 	for I in ENERGY_FULL= POWER_NOW SUPPLY_STATUS ENERGY_NOW
 	do
 		IUEVENT=$(grep $I /sys/class/power_supply/BAT$1/uevent)
@@ -49,27 +55,49 @@ function readBat(){
 		fi
 	done
 
-	if [ "$2" = "-v" ]; then # verbose
-		POWERNOW=$(cat /sys/class/power_supply/BAT$1/power_now)
-		if [ $POWERNOW = 0 ]; then
-			echo "Battery charged."
-			exit 0
-		fi
+}
+
+function batHours(){
+	BATS=("$@")
+	for i in "${BATS[@]}"
+	do
+		echo BAT: $i
+	done
+	exit
+	# check if we allready have some wattage from first
+	# battery. If yes add it.
+	POWERNOWB=$(cat /sys/class/power_supply/BAT$1/power_now)
+	echo -n $POWERNOW > $TMP/batterypower_now
+
+	if [ $POWERNOW == 0 ]; then
+		echo -n "Battery charged."
+	fi
+	
+	if [ $2 == 1 ]; then ## .. we have more battery
+		echo_comma 
+	else
 		ENERGYNOW=$(cat /sys/class/power_supply/BAT$1/energy_now)
-		HOURS=$(echo $ENERGYNOW / $POWERNOW | bc -l | cut -c 1-3)
-		echo Hours Remaining: $HOURS
+		HOURS=$(echo $ENERGYNOW / $POWERNOW_TOTAL | bc -l | cut -c 1-3)
+		echo -n Hours Remaining: $HOURS
 	fi
 }
 
+# read first battery only
 if [ $SYSFSBAT0 == 1 ] && [ $SYSFSBAT1 == 0 ]; then
-	readBat 0; 
-fi
- 
-if [ $SYSFSBAT0 == 0 ] && [ $SYSFSBAT1 == 1 ]; then
-	readBat 1; 
+	readBat 0 0
 fi
 
+# read only second battery
+if [ $SYSFSBAT0 == 0 ] && [ $SYSFSBAT1 == 1 ]; then
+	readBat 1 0
+fi
+
+# read both batteries
 if [ $SYSFSBAT0 == 1 ] && [ $SYSFSBAT1 == 1 ]; then
-	readBat 0 1;
-	readBat 1 0;
+	readBat 0 1
+	readBat 1 0
+	if [ "$VERBOSE" == "-v" ]; then
+		BATTS=(0 1) # array with bats
+		batHours ${BATS[@]}
+	fi
 fi

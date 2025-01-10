@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ "$1" == "on" ]; then
+	/sbin/modprobe ax88179_178a
+	exit 1
+fi
+
+export LC_ALL=C
+nmcli d status | grep -q eth0 | grep -q connected
+if [ $? == 0 ]; then
+	nmcli d disconnect eth0
+	sleep 1
+fi
+
+/sbin/modprobe -vr ax88179_178a
