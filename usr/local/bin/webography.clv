@@ -3,7 +3,7 @@
 #
 #alias webography='wget -k --user-agent="clavisound.gr" -e robots=off --wait 1 -p -P webography/'
 #alias webography_eval='wget -E -k --user-agent="clavisound.gr" -e robots=off --wait 1 -p -P webography/'
-WGETOPTIONS=${WGETOPTIONS:--E -k --user-agent="clavisound.gr" -e robots=off --wait 1 -p -P webography/}
+WGETOPTIONS=${WGETOPTIONS:--E -k --user-agent="clavisound webography script" -e robots=off --wait 1 -p -P webography/}
 URL=$(echo $1 | sed -f /etc/url-conv.sed)
 FILENAME=$(echo $URL | sed -e 's/.*\///g')
 
