@@ -9,6 +9,7 @@ fi
 # Check if a URL is provided as an argument
 if [ -z "$1" ]; then
 	$VERBOSE && echo "\nUsage: $0 -v https://www.ertecho.gr/radio/trito/show/o-ixos-tis-nyxtas-trito/"
+	$VERBOSE && echo "\nUsage: $0 -v https://www.ertecho.gr/radio/trito/show/anazitontas-tin-kyria-me-ti-stryxnini/page/2/"
 	exit 1
 fi
 
@@ -18,7 +19,8 @@ URL="$1"
 $VERBOSE && echo "\nFetching content from $URL..."
 
 # Get unique ondemand URLs
-ONDEMAND_URLS=$(curl -s "$URL" | grep -oP "https://www.ertecho.gr/radio/trito/show/o-ixos-tis-nyxtas-trito/ondemand/[^\"]+" | sort -u)
+#ONDEMAND_URLS=$(curl -s "$URL" | grep -oP "https://www.ertecho.gr/radio/trito/show/o-ixos-tis-nyxtas-trito/ondemand/[^\"]+" | sort -u)
+ONDEMAND_URLS=$(curl -s "$URL" | grep -oP "$URL[^\"]+" | sort -u)
 
 $VERBOSE && echo "\nExtracted unique ondemand URLs from the page. Now fetching MP3 URLs..."
 
