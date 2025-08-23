@@ -3,6 +3,7 @@
 LORA_FORWARDER_FOLDER=/var/lora_pkt_fwd
 LOGFOLDER=/var/log/
 ACM=$1
+CONSOLEOUT=$2
 
 if [ "$ACM" == '' ]; then
 	ACM=0
@@ -43,11 +44,16 @@ startLoRa(){
 		done
 		echo "LoRa starting.."
 		cd $LORA_FORWARDER_FOLDER
-		# OLD ok
-		#lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log &
-		# for my branch
-		lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte\|txlut | tee -a $LOGFOLDER/lora.log &
-		exit 0
+		if [ $CONSOLEOUT -eq 1 ]; then
+			# OLD ok
+			#lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|JSON\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte | tee -a $LOGFOLDER/lora.log &
+			lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|JSON\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte\|Selected | tee -a $LOGFOLDER/lora.log & # for my branch
+			exit 0
+		else
+			echo "No console out. Logging to $LOGFOLDER/lora.log"
+			lora_pkt_fwd -d /dev/ttyACM$ACM | grep --line-buffered -E CRC\|JSON\|ERROR\|rxpk\|mote\|WARNING\|dwnb\|PUSH_DATA\|forwarded\|started\|REJECTED\|rejecte\|Selected >> $LOGFOLDER/lora.log & # for my branch
+			exit 0
+		fi
 	else
 		echo "We expect LoRa concentrator on ACM$ACM"
 		ls -l /dev/ttyACM*

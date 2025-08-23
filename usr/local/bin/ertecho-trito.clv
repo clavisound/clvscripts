@@ -1,0 +1,38 @@
+#!/bin/bash
+
+VERBOSE=false
+if [[ "$1" == "-v" ]]; then
+    VERBOSE=true
+    shift
+fi
+
+# Check if a URL is provided as an argument
+if [ -z "$1" ]; then
+	$VERBOSE && echo "\nUsage: $0 -v https://www.ertecho.gr/radio/trito/show/o-ixos-tis-nyxtas-trito/"
+	exit 1
+fi
+
+# URL of the ERT Trito program page
+URL="$1"
+
+$VERBOSE && echo "\nFetching content from $URL..."
+
+# Get unique ondemand URLs
+ONDEMAND_URLS=$(curl -s "$URL" | grep -oP "https://www.ertecho.gr/radio/trito/show/o-ixos-tis-nyxtas-trito/ondemand/[^\"]+" | sort -u)
+
+$VERBOSE && echo "\nExtracted unique ondemand URLs from the page. Now fetching MP3 URLs..."
+
+
+# Loop through each ondemand URL and extract the MP3 URL
+for ondemand_url in $ONDEMAND_URLS; do
+	$VERBOSE && echo "Processing: $ondemand_url"
+	sleep $(shuf -i 3-6 -n 1)
+	mp3_url=$(curl -s "$ondemand_url" | grep -oP "https?://[^\"'<>]*?\.mp3")
+	if [ -n "$mp3_url" ]; then
+		echo "curl --limit-rate 1M -K ~/.curlrcFirefox -L -C - -o \"$(basename \"$mp3_url\") \"$mp3_url\""
+	else
+		$VERBOSE && echo "\nNo MP3 URL found for: $ondemand_url"
+	fi
+done
+
+$VERBOSE && echo "\nFinished extracting MP3 URLs."
