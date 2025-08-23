@@ -8,8 +8,8 @@ fi
 
 # Check if a URL is provided as an argument
 if [ -z "$1" ]; then
-	$VERBOSE && echo "\nUsage: $0 -v https://www.ertecho.gr/radio/trito/show/o-ixos-tis-nyxtas-trito/"
-	$VERBOSE && echo "\nUsage: $0 -v https://www.ertecho.gr/radio/trito/show/anazitontas-tin-kyria-me-ti-stryxnini/page/2/"
+	echo "Usage: $0 -v https://www.ertecho.gr/radio/trito/show/o-ixos-tis-nyxtas-trito/"
+	echo "Usage: $0 -v https://www.ertecho.gr/radio/trito/show/anazitontas-tin-kyria-me-ti-stryxnini/page/2/"
 	exit 1
 fi
 
@@ -19,10 +19,9 @@ URL="$1"
 $VERBOSE && echo "\nFetching content from $URL..."
 
 # Get unique ondemand URLs
-#ONDEMAND_URLS=$(curl -s "$URL" | grep -oP "https://www.ertecho.gr/radio/trito/show/o-ixos-tis-nyxtas-trito/ondemand/[^\"]+" | sort -u)
 ONDEMAND_URLS=$(curl -s "$URL" | grep -oP "$URL[^\"]+" | sort -u)
 
-$VERBOSE && echo "\nExtracted unique ondemand URLs from the page. Now fetching MP3 URLs..."
+$VERBOSE && echo "Extracted unique ondemand URLs from the page. Now fetching MP3 URLs..."
 
 
 # Loop through each ondemand URL and extract the MP3 URL
@@ -33,8 +32,8 @@ for ondemand_url in $ONDEMAND_URLS; do
 	if [ -n "$mp3_url" ]; then
 		echo "curl --limit-rate 1M -K ~/.curlrcFirefox -L -C - -o \"$(basename \"$mp3_url\") \"$mp3_url\""
 	else
-		$VERBOSE && echo "\nNo MP3 URL found for: $ondemand_url"
+		$VERBOSE && echo "No MP3 URL found for: $ondemand_url"
 	fi
 done
 
-$VERBOSE && echo "\nFinished extracting MP3 URLs."
+$VERBOSE && echo "Finished extracting MP3 URLs."
