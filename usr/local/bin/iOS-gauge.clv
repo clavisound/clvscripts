@@ -1,10 +1,14 @@
 #!/bin/bash
+
 # wait for usbmuxd
-sleep 12 
+if [ "$1" == "" ];then
+	sleep 12 
+fi
 
 FILE=/var/log/iOS.GasGauge
 
 MESSAGE=$(ideviceinfo --simple | grep DeviceName)
+MESSAGE=$(echo $MESSAGE | sed 's+DeviceName: ++')
 MESSAGE+=","
 MESSAGE+=`date -R`
 idevicediagnostics diagnostics GasGauge 1> $TMP/gasgauge.temp
@@ -14,5 +18,6 @@ do
 done
 
 echo -e $MESSAGE >> $FILE
-# DEBUG
-# echo -e $MESSAGE
+if [ "$1" == "-v" ];then
+ echo -e $MESSAGE
+fi

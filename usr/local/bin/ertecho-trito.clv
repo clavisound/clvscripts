@@ -19,16 +19,20 @@ URL="$1"
 $VERBOSE && echo "\nFetching content from $URL..."
 
 # Get unique ondemand URLs
-ONDEMAND_URLS=$(curl -s "$URL" | grep -oP "$URL[^\"]+" | sort -u)
+BASE_URL=$(echo "$URL" | sed -e s+page..*$++g)
+ONDEMAND_URLS=$(curl -s -K ~/.curlrcFirefox "$URL" | grep -oP "$BASE_URL[^\"]+" | sort -u)
 
+$VERBOSE && echo URL $URL
+$VERBOSE && echo BASEURL $BASE_URL
+$VERBOSE && echo DEBUG: $ONDEMAND_URLS
 $VERBOSE && echo "Extracted unique ondemand URLs from the page. Now fetching MP3 URLs..."
-
 
 # Loop through each ondemand URL and extract the MP3 URL
 for ondemand_url in $ONDEMAND_URLS; do
 	$VERBOSE && echo "Processing: $ondemand_url"
 	sleep $(shuf -i 3-6 -n 1)
 	mp3_url=$(curl -s "$ondemand_url" | grep -oP "https?://[^\"'<>]*?\.mp3")
+	$VERBOSE && echo $mp3_url
 	if [ -n "$mp3_url" ]; then
 		echo "curl --limit-rate 1M -K ~/.curlrcFirefox -L -C - -o \"$(basename \"$mp3_url\") \"$mp3_url\""
 	else
