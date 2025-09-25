@@ -14,7 +14,16 @@ killLora()
 	echo -n "Start Killing..."
 	killall -9 lora_pkt_fwd
 	echo "done killing."
+	sleep 1
 	sudo /sbin/modprobe -vr cdc_acm
+
+	# After kernel 5.15.193 or? iPhone attached we need this.
+	lsmod | grep cdc_acm
+	if [ $? == 0 ]; then
+		echo "Error, cdc_acm is present."
+		exit 1
+	fi
+
 	sleep 1
 	sudo /sbin/modprobe -v cdc_acm
 	sleep 1
