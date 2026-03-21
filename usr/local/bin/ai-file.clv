@@ -1,0 +1,58 @@
+#!/bin/bash
+# Minimal AI file editor - using jq for JSON
+
+FILE="$1"
+INSTRUCTION="$2"
+
+if [ -z "$FILE" ] || [ -z "$INSTRUCTION" ]; then
+    echo "Usage: ai-file filename instruction"
+    exit 1
+fi
+
+# Read file content
+CONTENT=$(cat "$FILE")
+
+# Create JSON payload with jq
+jq -n \
+  --arg model "qwen3.5-2B" \
+  --arg content "$CONTENT" \
+  --arg file "$FILE" \
+  --arg instruction "$INSTRUCTION" \
+  '{
+    messages: [
+      {
+	      role: "system",
+        content: "You are a code editor. Output ONLY the modified file content. No explanations, no analysis, no markdown code blocks. Just the raw content."
+      },
+      {
+        role: "user",
+        content: "File: \($file)\n\nCurrent content:\n\($content)\n\nInstruction: \($instruction)\n\nOutput ONLY the complete modified file content with no additional text."
+      }
+    ],
+    temperature: 0.1
+  }' > /tmp/payload.json
+
+# Send request
+curl -s http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d @/tmp/payload.json | jq -r '.choices[0].message.content' > "$FILE.new"
+
+# Show diff
+if [ -f "$FILE.new" ] && [ -s "$FILE.new" ]; then
+    diff -u "$FILE" "$FILE.new" | head -50
+    echo ""
+    read -p "Apply changes? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        mv "$FILE.new" "$FILE"
+        echo "Updated $FILE"
+    else
+        rm "$FILE.new"
+        echo "Cancelled"
+    fi
+else
+    echo "Error: No valid response from server"
+    rm -f "$FILE.new"
+fi
+
+rm -f /tmp/payload.json
