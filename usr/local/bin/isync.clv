@@ -1,4 +1,10 @@
 #!/bin/bash
+
+if [ "$1" == "-h" ]; then
+	echo "Usage: $0"
+	echo "Script will create a folder in ~/iOS/bck/UUID_PHONE/ to backup photos, Purchases, Recording and Books."
+fi
+
 if [ -e ~/iOS/user-area/DCIM/100APPLE ]; then
 	IDEVICE=`ideviceinfo -s | grep DeviceID | sed 's/.*: //'`
 	if [ "$IDEVICE" == "" ]; then
