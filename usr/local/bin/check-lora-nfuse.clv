@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CPU_LIMIT=14
+CPU_LIMIT=30
 
 start_lora()
 {
@@ -12,40 +12,87 @@ start_lora()
 	fi
 }
 
-LORA_CPU=$(ps -eo pcpu,fname | grep lora_pkt | sed 's+ lora_pkt++')
-if [ "$LORA_CPU" == "" ]; then
-	echo "No CPU usage: $LORA_CPU from lora_pkt process found"
-	start_lora
-	exit
+# Find the lora_pkt_fwd process PID and CPU usage
+LORA_PROCESS_INFO=$(ps -eo pid,pcpu,command | grep lora_pkt_fwd | grep -v grep)
+
+if [ -z "$LORA_PROCESS_INFO" ]; then
+    echo "No lora_pkt_fwd process found."
+    start_lora
+    exit
 fi
 
-CPU_USAGE=$(echo $LORA_CPU \* 10 | bc -l | sed 's+\.0++')
+PID=$(echo "$LORA_PROCESS_INFO" | awk '{print $1}')
+LORA_CPU=$(echo "$LORA_PROCESS_INFO" | awk '{print $2}')
+CPU_USAGE=$(echo "$LORA_CPU * 10" | bc -l | sed 's+\.0++')
 
 # if DEBUG print some values
 if [ "$1" == "-d" ]; then
-	echo USAGE: ${CPU_USAGE}% CPU: $LORA_CPU
+	echo USAGE: ${CPU_USAGE}% CPU: $LORA_CPU, LoRa process info: ${LORA_PROCESS_INFO}
 fi
 
-if [ "$CPU_USAGE" == "" ]; then
-	echo "No lora_pkt_fwd process."
+#if [ "$CPU_USAGE" == "" ]; then
+#	echo "No lora_pkt_fwd process." # This case should be covered by the -z "$LORA_PROCESS_INFO" check, but keeping for robustness.
+#	start_lora
+#	exit
+#fi
+
+# CPU usage check
+if [ "$CPU_USAGE" -gt "$CPU_LIMIT" ]; then
+	echo "More than $CPU_LIMIT, pcpu: $CPU_USAGE"
+	echo "restarting lora CPU: $CPU_USAGE" | mail -s "LoRa HANG!" `whoami`
 	start_lora
 	exit
 fi
 
-# BUG? top says 100% but ps says 37-40 CPU usage
-# BUG? top says 100% but ps says 15 CPU usage
-# Normal cpu usage is 3%
-if [ $CPU_USAGE -gt $CPU_LIMIT ]; then
-	echo More than $CPU_LIMIT, pcpu: $CPU_USAGE
-	echo "restarting lora CPU: $CPU_USAGE" | mail -s "LoRa HANG!" `whoami` 
-	start_lora
-	exit
+# New logic for write_bytes check
+# Get elapsed time for the found PID using /proc filesystem
+STAT_FILE="/proc/$PID/stat"
+if [ -f "$STAT_FILE" ]; then
+    # Field 22 is starttime in jiffies
+    START_TIME_JIFFIES=$(awk '{print $22}' "$STAT_FILE")
+
+    # Get system clock ticks per second
+    CLK_TCK=$(getconf CLK_TCK)
+
+    # Get system uptime in seconds (first value), truncated to integer
+    UPTIME_SECONDS=$(awk '{print int($1)}' /proc/uptime)
+
+    if [ -n "$START_TIME_JIFFIES" ] && [ -n "$CLK_TCK" ] && [ -n "$UPTIME_SECONDS" ]; then
+        # Calculate process start time in seconds since boot
+        START_TIME_SECONDS_SINCE_BOOT=$(echo "scale=0; $START_TIME_JIFFIES / $CLK_TCK" | bc)
+
+        # Calculate elapsed time in seconds
+        ELAPSED_SECONDS=$(echo "scale=0; $UPTIME_SECONDS - $START_TIME_SECONDS_SINCE_BOOT" | bc)
+
+        # Check if process started more than 5 minutes (300 seconds) ago
+        if [ "$ELAPSED_SECONDS" -gt 300 ]; then
+            IO_FILE="/proc/$PID/io"
+            if [ -f "$IO_FILE" ]; then
+                WRITE_BYTES=$(grep "^wchar:" "$IO_FILE" | awk '{print $2}')
+                if [ -z "$WRITE_BYTES" ]; then
+                    WRITE_BYTES=$(grep "^wchar_bytes:" "$IO_FILE" | awk '{print $2}')
+                fi
+
+		if [ "$1" == "-d" ]; then
+			echo Elapsed Seconds: ${ELAPSED_SECONDS}, Write bytes: ${WRITE_BYTES}
+		fi
+
+                if [ "$WRITE_BYTES" == "0" ]; then
+                    echo "lora_pkt_fwd (PID: $PID) started $ELAPSED_SECONDS seconds ago with 0 wchar. Restarting."
+                    echo "lora_pkt_fwd no wchar" | mail -s "Zero LoRa IO_W. Probably hang." `whoami`
+                    start_lora
+                    exit
+                fi
+            fi
+        fi
+    fi
 fi
 
+# Existing CRC check logic
 cat /var/log/lora.log | tail -9 | grep -q "CRC_OK: 0\.00.*CRC_FAIL: 0\.00.*NO_CRC: 0\.00"
 if [ $? -eq 0 ]; then
 	echo Concentrator hang. No CRC reporting.
-	echo "restarting lora_packet_fwd" | mail -s "Zero LoRa packets. Probably hang." `whoami` 
+	echo "restarting lora_packet_fwd" | mail -s "Zero LoRa packets. Probably hang." `whoami`
 	start_lora
 	exit
 fi

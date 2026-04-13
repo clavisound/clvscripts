@@ -35,6 +35,7 @@ for ondemand_url in $ONDEMAND_URLS; do
 	$VERBOSE && echo $mp3_url
 	if [ -n "$mp3_url" ]; then
 		echo "curl --limit-rate 1M -K ~/.curlrcFirefox -L -C - -o \"$(basename \"$mp3_url\") \"$mp3_url\""
+#		curl --limit-rate 1M -K ~/.curlrcFirefox -L -C - -o \"$(basename \"$mp3_url\") \"$mp3_url\"
 	else
 		$VERBOSE && echo "No MP3 URL found for: $ondemand_url"
 	fi
