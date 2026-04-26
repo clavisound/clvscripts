@@ -14,12 +14,14 @@ if [ ! -e /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq ]; then
 	exit 1
 fi
 
-echo "Usage: $0 1 (number of cpus 0=1!)" 
-echo "Check your CPU capabilities:"
-grep . /sys/devices/system/cpu/cpu0/cpufreq/* | sed -e 's/.*\/cpufreq//g' -e 's/000 / /g'
+if [ $1 == "" ]; then 
+	echo "Usage: $0 1 (number of cpus 0=1!)" 
+	echo "Check your CPU capabilities:"
+	grep . /sys/devices/system/cpu/cpu0/cpufreq/* | sed -e 's/.*\/cpufreq//g' -e 's/000 / /g'
 
-echo
-echo
+	echo
+	echo
+fi
 
 function cpus (){
 #	CORESLIVE=`cat /sys/devices/system/cpu/online | tr -d 0-` # 1 = 2 cpus!
@@ -42,9 +44,10 @@ sleep 3
 function upthreshold (){
 	# TODO: study about this...
 	# BUG: works only with root. Permission problem (UDEV?)
-	echo "Adjusting up_threshold for lower latency to: $UPTHRESHOLD."
+	echo "DEBUG: disabled threshold"
+#	echo "Adjusting up_threshold for lower latency to: $UPTHRESHOLD."
 	#	echo $UPTHRESHOLD > /sys/devices/system/cpu/cpu0/cpufreq/ondemand/up_threshold || echo "Oooops, no permission?" # for older kernel
-	echo $UPTHRESHOLD > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold || echo "Oooops, no permission?" # for older kernel
+#	echo $UPTHRESHOLD > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold || echo "Oooops, no permission?" # for older kernel
 }
 
 function restoreupthreshold (){
@@ -94,7 +97,7 @@ function echo_cpu (){
 }
 
 # Disabling / enabling CPUS by user argument
-if [ ${NUMBEROFCPUS} -eq 0 ]; then
+if [ $NUMBEROFCPUS -eq 0 ]; then
 	# check how many offline CPUs we have
 	ONLINECPU=$(cat /sys/devices/system/cpu/online)
 	CORESPRESENT=$(cat /sys/devices/system/cpu/present | tr -d 0-) # 1 = 2 cpus!
@@ -109,14 +112,16 @@ if [ ${NUMBEROFCPUS} -eq 0 ]; then
 	sleep 1
 else
 	# check how many offline CPUs we have
-	OFFLINECPU=$(cat /sys/devices/system/cpu/offline)
+	OFFLINECPU=$(sed -e 's+,.*++' -e 's+.*-++' /sys/devices/system/cpu/possible)
 	if [ "$OFFLINECPU" = '' ]; then
 		OFFLINECPU=0
 		echo "All CPUS are online"
 	fi
 	CPUCOUNT=1
-	while [ ${OFFLINECPU} -gt 0 ]; do
-		echo 1 > /sys/devices/system/cpu/cpu$CPUCOUNT/online
+
+	while [ $OFFLINECPU -gt 0 ]; do
+		echo online $OFFLINECPU
+		echo 1 > /sys/devices/system/cpu/cpu$OFFLINECPU/online
 		let OFFLINECPU=OFFLINECPU-1
 	done
 	sleep 1
@@ -170,11 +175,16 @@ elif [ "$HZ_OR_ECHO" =  "2" ]; then
 	echo "CPU clock set to $FREQ. Let's see what the kernel thinks: `grep MHz /proc/cpuinfo`"
 	sleep_and_exit
 elif [ $HZ_OR_ECHO -gt 5 ] && [ $HZ_OR_ECHO -lt 50 ]; then
-	echo_cpu userspace scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	#echo_cpu userspace scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	governor_is_available
+	echo_cpu conservative scaling_governor #	echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+	MINFREQ=`cat /sys/devices/system/cpu/cpu$CPUCOUNT/cpufreq/cpuinfo_min_freq`
 	reset_lowest_and_maximum
 	FREQ="${HZ_OR_ECHO}00000"
-	echo_cpu $FREQ scaling_setspeed #	echo $FREQ > /sys/devices/system/cpu/cpu?/cpufreq/scaling_setspeed
-	echo "CPU clock set to $FREQ. Let's see what the kernel thinks: `grep MHz /proc/cpuinfo`"
+	echo_cpu $MINFREQ scaling_min_freq #	echo $MINFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+	echo_cpu $FREQ scaling_max_freq #	echo $LOWERMAXFREQ > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+	#echo_cpu $FREQ scaling_setspeed #	echo $FREQ > /sys/devices/system/cpu/cpu?/cpufreq/scaling_setspeed
+	echo "Max CPU clock set to $FREQ. Let's see what the kernel thinks: `grep MHz /proc/cpuinfo`"
 	sleep_and_exit
 elif [ "$HZ_OR_ECHO" =  "ondemand" ] || [ "$HZ_OR_ECHO" = "o" ]; then
 	governor_is_available
