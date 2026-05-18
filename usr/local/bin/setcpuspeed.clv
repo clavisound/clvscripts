@@ -120,7 +120,7 @@ else
 	CPUCOUNT=1
 
 	while [ $OFFLINECPU -gt 0 ]; do
-		echo online $OFFLINECPU
+		#echo online $OFFLINECPU
 		echo 1 > /sys/devices/system/cpu/cpu$OFFLINECPU/online
 		let OFFLINECPU=OFFLINECPU-1
 	done

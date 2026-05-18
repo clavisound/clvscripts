@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Restart all programs that are in T (stopped) state due to job control signals
+# This script checks for jobs that have been terminated and restarts them if they're still running
+
+if [ "$2" = "" ]; then
+	echo -e "Usage\t: $0 UID username"
+	echo -e "Example\t: $0 1000 username"
+	exit 1
+fi
+
+TOGREP="$1"" ""$2"
+
+for pid in $(ps -eo pid,state,comm,euid,ruser,fname | grep ' T ' | grep "$TOGREP" | sed -e 's+ T.*++' -e 's+ ++' | sort -n | uniq); do
+    # Check if the process is still alive
+    if kill -0 "$pid" 2>/dev/null; then
+        # Restart the process
+	echo -n "restarting: "
+	ps -eo pid,comm | grep $pid
+	kill -18 "$pid"
+    fi
+done
