@@ -1,0 +1,48 @@
+#!/bin/bash
+PROFILE=$1
+
+# if [ ! -e $PROFILE.key ]; then
+if [ "$PROFILE" = "" ]; then
+	echo $PROFILE.key is missing.
+	echo "Usage: $0 profile"
+	echo "You may want to run source ./vars and pkitool your-client"
+	exit 1
+fi
+
+function mergekeys()
+{
+cd /etc/openvpn/pki
+echo "<ca>" >> $PROFILE.ovpn
+cat ca.crt >> $PROFILE.ovpn
+echo "</ca>" >> $PROFILE.ovpn
+echo "<cert>" >> $PROFILE.ovpn
+cat issued/$PROFILE.crt >> $PROFILE.ovpn
+echo "</cert>" >> $PROFILE.ovpn
+echo "<key>" >> $PROFILE.ovpn
+cat private/$PROFILE.key >> $PROFILE.ovpn
+echo "</key>" >> $PROFILE.ovpn
+cat ../client-sample.ovpn >> $PROFILE.ovpn
+vim $PROFILE.ovpn
+
+tar cJvf $PROFILE.tar.xz ca.crt issued/$PROFILE.crt private/$PROFILE.key $PROFILE.ovpn inline/private/$PROFILE.inline
+zip $PROFILE.zip ca.crt issued/$PROFILE.crt private/$PROFILE.key $PROFILE.ovpn inline/private/$PROFILE.inline
+}
+
+cd /etc/openvpn/
+source ./vars
+cd pki
+
+if [ -e $PROFILE.ovpn ]; then
+	echo "FATAL ERROR: $PROFILE.opvn exists, exiting"
+	echo "only zipping keys."
+	mergekeys
+	exit 1
+fi
+
+cd /etc/openvpn/
+./easyrsa --tmp-dir=/mnt/tempfs/ -b gen-req $PROFILE
+
+cd /etc/openvpn/
+./easyrsa --tmp-dir=/mnt/tempfs/ -b sign-req client $PROFILE
+mergekeys
+
