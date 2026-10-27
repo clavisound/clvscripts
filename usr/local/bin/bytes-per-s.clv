@@ -1,7 +1,12 @@
 #!/bin/bash
+if [ "$1" == "" ]; then
+	echo "Usage $0 device [sda, sda0, mmcblk1]"
+	exit 1
+fi
+
 echo wait 1 minute...
-awk '{print $10}' /sys/block/mmcblk1/stat > /tmp/a
+awk '{print $10}' /sys/block/$1/stat > /tmp/a
 sleep 60
-awk '{print $10}' /sys/block/mmcblk1/stat > /tmp/b
+awk '{print $10}' /sys/block/$1/stat > /tmp/b
 echo "bytes/s: $(( ($(cat /tmp/b) - $(cat /tmp/a)) * 512 / 60 ))"
 
