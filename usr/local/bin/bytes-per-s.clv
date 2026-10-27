@@ -1,12 +1,17 @@
 #!/bin/bash
 if [ "$1" == "" ]; then
 	echo "Usage $0 device [sda, sda0, mmcblk1]"
+	echo "optional. Second argument is for seconds."
 	exit 1
+fi
+
+if [ "$2" == "" ]; then
+	SECONDS=60
 fi
 
 echo wait 1 minute...
 awk '{print $10}' /sys/block/$1/stat > /tmp/a
-sleep 60
+sleep $SECONDS
 awk '{print $10}' /sys/block/$1/stat > /tmp/b
 echo "bytes/s: $(( ($(cat /tmp/b) - $(cat /tmp/a)) * 512 / 60 ))"
 
