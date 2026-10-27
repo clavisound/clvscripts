@@ -1,0 +1,7 @@
+#!/bin/bash
+echo wait 1 minute...
+awk '{print $10}' /sys/block/mmcblk1/stat > /tmp/a
+sleep 60
+awk '{print $10}' /sys/block/mmcblk1/stat > /tmp/b
+echo "bytes/s: $(( ($(cat /tmp/b) - $(cat /tmp/a)) * 512 / 60 ))"
+
