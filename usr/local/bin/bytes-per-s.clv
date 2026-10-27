@@ -5,11 +5,12 @@ if [ "$1" == "" ]; then
 	exit 1
 fi
 
+SECONDS=$2
 if [ "$2" == "" ]; then
 	SECONDS=60
 fi
 
-echo wait 1 minute...
+echo wait $SECONDS seconds...
 awk '{print $10}' /sys/block/$1/stat > /tmp/a
 sleep $SECONDS
 awk '{print $10}' /sys/block/$1/stat > /tmp/b
