@@ -11,8 +11,9 @@ if [ "$2" == "" ]; then
 fi
 
 echo wait $SECONDS seconds...
-awk '{print $10}' /sys/block/$1/stat > /tmp/a
+A=$(awk '{print $10}' /sys/block/$1/stat)
 sleep $SECONDS
-awk '{print $10}' /sys/block/$1/stat > /tmp/b
-echo "bytes/s: $(( ($(cat /tmp/b) - $(cat /tmp/a)) * 512 / 60 ))"
+B=$(awk '{print $10}' /sys/block/$1/stat)
+echo "A: $A, B: $B"
+echo "bytes/s: $(( ( $B - $A ) * 512 / 60 ))"
 
